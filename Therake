@@ -9,7 +9,7 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local Flags = Library.Flags
 
--- UI Window & Tabs
+-- UI Setup
 local Window = Library:Window({ Text = "The Rake: Remastered" })
 local MainTab = Window:Tab({ Text = "Main" })
 local VisualTab = Window:Tab({ Text = "Visual" })
@@ -18,6 +18,7 @@ local StatusTab = Window:Tab({ Text = "Status" })
 -- Sections
 local Gameplay = MainTab:Section({ Text = "Gameplay" })
 local Morphs = MainTab:Section({ Text = "Morphs" })
+local Teleport = MainTab:Section({ Text = "Teleport" })
 local ESP = VisualTab:Section({ Text = "ESP" })
 local Status = StatusTab:Section({ Text = "Live Info" })
 
@@ -26,24 +27,20 @@ local FlareLabel = Status:Label({ Text = "Flare Gun: Unknown" })
 local RakeLabel = Status:Label({ Text = "Rake: Unknown" })
 local BloodHourLabel = Status:Label({ Text = "Blood Hour: Unknown" })
 
--- === STATUS UPDATES ===
+-- Status Updater
 RunService.RenderStepped:Connect(function()
-    -- Flare Gun Status
     local flare = Workspace:FindFirstChild("FlareGun") or Workspace:FindFirstChildWhichIsA("Tool", true)
     FlareLabel:Set({ Text = flare and "Flare Gun: Spawned" or "Flare Gun: Not Found" })
 
-    -- Rake Status
     local rake = Workspace:FindFirstChild("Rake") or Workspace:FindFirstChild("RakeAI")
     RakeLabel:Set({ Text = rake and "Rake: Active" or "Rake: Not Spawned" })
 
-    -- Blood Hour Status
     local bh = ReplicatedStorage:FindFirstChild("BloodHour")
     BloodHourLabel:Set({ Text = bh and bh.Value and "Blood Hour: ACTIVE" or "Blood Hour: Inactive" })
 end)
 
--- === GAMEPLAY TOGGLES ===
+-- WalkSpeed Bypass
 local walkSpeedConnection
-
 Gameplay:Toggle({
     Text = "WalkSpeed Bypass (30)",
     Callback = function(state)
@@ -57,6 +54,7 @@ Gameplay:Toggle({
     end
 })
 
+-- Infinite Stamina
 Gameplay:Toggle({
     Text = "Infinite Stamina",
     Callback = function(state)
@@ -70,14 +68,41 @@ Gameplay:Toggle({
     end
 })
 
+-- Full Bright with Lighting override
 Gameplay:Toggle({
     Text = "Full Bright",
     Callback = function(state)
-        Lighting.FogEnd = state and 100000 or 1000
-        Lighting.Brightness = state and 3 or 1
+        local Light = game:GetService("Lighting")
+
+        local function dofullbright()
+            if state then
+                Light.Ambient = Color3.new(1, 1, 1)
+                Light.ColorShift_Bottom = Color3.new(1, 1, 1)
+                Light.ColorShift_Top = Color3.new(1, 1, 1)
+                Light.Brightness = 3
+                Light.FogEnd = 100000
+            end
+        end
+
+        if Flags.FullBrightConnection then
+            Flags.FullBrightConnection:Disconnect()
+            Flags.FullBrightConnection = nil
+        end
+
+        if state then
+            dofullbright()
+            Flags.FullBrightConnection = Light.LightingChanged:Connect(dofullbright)
+        else
+            Light.Ambient = Color3.new(0, 0, 0)
+            Light.ColorShift_Bottom = Color3.new(0, 0, 0)
+            Light.ColorShift_Top = Color3.new(0, 0, 0)
+            Light.Brightness = 1
+            Light.FogEnd = 1000
+        end
     end
 })
 
+-- No Fall Damage
 Gameplay:Toggle({
     Text = "No Fall Damage",
     Callback = function(state)
@@ -96,7 +121,7 @@ Gameplay:Toggle({
     end
 })
 
--- === MORPHS ===
+-- Morphs
 local function MorphInto(name)
     local morph = ReplicatedStorage:FindFirstChild("Morphs") and ReplicatedStorage.Morphs:FindFirstChild(name)
     if morph then ReplicatedStorage:WaitForChild("CharChange"):FireServer(morph) end
@@ -108,7 +133,43 @@ Morphs:Button({ Text = "Shadow Rake", Callback = function() MorphInto("ShadowHou
 Morphs:Button({ Text = "Vision Rake", Callback = function() MorphInto("VisionRakeMorph") end })
 Morphs:Button({ Text = "Corrupted Rake", Callback = function() MorphInto("CorrupteredRakeMorph") end })
 
--- === ESP SYSTEM ===
+-- Teleport to Flare Gun
+local autoTPConnection
+
+Teleport:Button({
+    Text = "Teleport to Flare Gun",
+    Callback = function()
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("Tool") and obj.Name:lower():find("flare") then
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = obj.Handle.CFrame + Vector3.new(0, 3, 0)
+                end
+                break
+            end
+        end
+    end
+})
+
+Teleport:Toggle({
+    Text = "Auto Teleport to Flare Gun",
+    Callback = function(state)
+        if autoTPConnection then autoTPConnection:Disconnect() end
+        if state then
+            autoTPConnection = RunService.RenderStepped:Connect(function()
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("Tool") and obj.Name:lower():find("flare") then
+                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            LocalPlayer.Character.HumanoidRootPart.CFrame = obj.Handle.CFrame + Vector3.new(0, 3, 0)
+                        end
+                        break
+                    end
+                end
+            end)
+        end
+    end
+})
+
+-- ESP Helpers
 local activeESP = {}
 
 local function applyHighlight(obj, color)
@@ -129,6 +190,7 @@ local function clearESP()
     activeESP = {}
 end
 
+-- ESP Toggles
 ESP:Toggle({
     Text = "ESP: Rake",
     Callback = function(state)
@@ -148,14 +210,14 @@ ESP:Toggle({
 })
 
 ESP:Toggle({
-    Text = "ESP: Flare Gun",
+    Text = "ESP: Players",
     Callback = function(state)
-        RunService:UnbindFromRenderStep("FlareESP")
+        RunService:UnbindFromRenderStep("PlayerESP")
         if state then
-            RunService:BindToRenderStep("FlareESP", 1, function()
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Tool") and obj.Name:lower():find("flare") then
-                        applyHighlight(obj, Color3.fromRGB(255, 255, 0))
+            RunService:BindToRenderStep("PlayerESP", 1, function()
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character then
+                        applyHighlight(p.Character, Color3.fromRGB(0, 170, 255))
                     end
                 end
             end)
@@ -166,14 +228,14 @@ ESP:Toggle({
 })
 
 ESP:Toggle({
-    Text = "ESP: Players",
+    Text = "ESP: Flare Gun",
     Callback = function(state)
-        RunService:UnbindFromRenderStep("PlayerESP")
+        RunService:UnbindFromRenderStep("FlareESP")
         if state then
-            RunService:BindToRenderStep("PlayerESP", 1, function()
-                for _, p in pairs(Players:GetPlayers()) do
-                    if p ~= LocalPlayer and p.Character then
-                        applyHighlight(p.Character, Color3.fromRGB(0, 170, 255))
+            RunService:BindToRenderStep("FlareESP", 1, function()
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("Tool") and obj.Name:lower():find("flare") then
+                        applyHighlight(obj, Color3.fromRGB(255, 255, 0))
                     end
                 end
             end)
