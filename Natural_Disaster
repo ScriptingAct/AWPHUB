@@ -1,311 +1,150 @@
--- WARNING: Use at your own risk! Adjust for your game version!
+-- WARNING: Use at your own risk!
 
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/ScriptingAct/Meceruy/refs/heads/main/V1"))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deeeity/mercury-lib/master/src.lua"))()
 
 local gui = Library:create{
     Theme = Library.Themes.Serika,
-    Name = "AWP_HUB[The_Rake_Remastered]"
-}
-
-local mainTab = gui:tab{
-    Icon = "rbxassetid://6031094673", -- Gear icon
-    Name = "Main"
-}
-
-local movementTab = gui:tab{
-    Icon = "rbxassetid://6023426915", -- Running man icon
-    Name = "Movement"
-}
-
-local statusTab = gui:tab{
-    Icon = "rbxassetid://6035047405", -- Info icon
-    Name = "Status"
+    Name = "AWP_HUB Survival"
 }
 
 local player = game.Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
-local camera = workspace.CurrentCamera
+local rs = game:GetService("RunService")
 
--- Variables
-local espEnabled = false
-local notifyEnabled = true
-local notificationDistance = 20
-
--- Movement
-local speedEnabled = false
-local speedValue = 30 -- default speed
-
--- Utility function to find The Rake in workspace (adjust path if needed)
-local function getRake()
-    return workspace:FindFirstChild("Rake") or workspace:FindFirstChild("TheRake")
-end
-
--- ESP Elements
-local espBoxes = {}
-local espNametags = {}
-local espStuds = {}
-
--- Create ESP elements for rake
-local function createESP()
-    if espBoxes["rake"] then return end
-
-    -- Box
-    local box = Drawing.new("Square")
-    box.Color = Color3.new(1, 0, 0)
-    box.Thickness = 2
-    box.Transparency = 1
-    box.Filled = false
-    box.Visible = false
-
-    -- NameTag
-    local nametag = Drawing.new("Text")
-    nametag.Color = Color3.new(1, 0, 0)
-    nametag.Size = 18
-    nametag.Center = true
-    nametag.Visible = false
-    nametag.Text = "The Rake"
-
-    -- Studs Text
-    local studsText = Drawing.new("Text")
-    studsText.Color = Color3.new(1, 1, 1)
-    studsText.Size = 16
-    studsText.Center = true
-    studsText.Visible = false
-    studsText.Text = ""
-
-    espBoxes["rake"] = box
-    espNametags["rake"] = nametag
-    espStuds["rake"] = studsText
-end
-
-local function removeESP()
-    for _, box in pairs(espBoxes) do
-        box.Visible = false
-        box:Remove()
-    end
-    for _, tag in pairs(espNametags) do
-        tag.Visible = false
-        tag:Remove()
-    end
-    for _, studs in pairs(espStuds) do
-        studs.Visible = false
-        studs:Remove()
-    end
-    espBoxes = {}
-    espNametags = {}
-    espStuds = {}
-end
-
-local espConnection
-
-local function enableESP()
-    if espConnection then return end
-    createESP()
-
-    espConnection = RunService.RenderStepped:Connect(function()
-        local rake = getRake()
-        if not rake or not rake:FindFirstChild("HumanoidRootPart") then
-            for _, v in pairs(espBoxes) do v.Visible = false end
-            for _, v in pairs(espNametags) do v.Visible = false end
-            for _, v in pairs(espStuds) do v.Visible = false end
-            return
-        end
-
-        local hrp = rake.HumanoidRootPart
-        local pos, onScreen = camera:WorldToViewportPoint(hrp.Position)
-
-        if onScreen then
-            local distance = (camera.CFrame.Position - hrp.Position).Magnitude
-            local size = math.clamp(3000 / distance, 20, 60)
-
-            -- Update Box
-            local box = espBoxes["rake"]
-            box.Visible = true
-            box.Size = Vector2.new(size, size)
-            box.Position = Vector2.new(pos.X - size/2, pos.Y - size/2)
-
-            -- Update Nametag
-            local tag = espNametags["rake"]
-            tag.Visible = true
-            tag.Position = Vector2.new(pos.X, pos.Y - size/2 - 20)
-            tag.Text = "The Rake"
-
-            -- Update Studs
-            local studs = espStuds["rake"]
-            studs.Visible = true
-            studs.Position = Vector2.new(pos.X, pos.Y + size/2 + 5)
-            studs.Text = string.format("Distance: %d studs", math.floor(distance))
-        else
-            espBoxes["rake"].Visible = false
-            espNametags["rake"].Visible = false
-            espStuds["rake"].Visible = false
-        end
-    end)
-end
-
-local function disableESP()
-    if espConnection then
-        espConnection:Disconnect()
-        espConnection = nil
-    end
-    removeESP()
-end
-
--- Notification for proximity to The Rake
-local function notifyRakeDistance()
-    local rake = getRake()
-    local char = player.Character
-    if rake and char and char:FindFirstChild("HumanoidRootPart") then
-        local dist = (rake.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
-        if dist < notificationDistance then
-            gui:notify({
-                Title = "Warning!",
-                Text = "The Rake is near (" .. math.floor(dist) .. " studs)",
-                Duration = 3,
-                Type = "danger"
-            })
-        end
-    end
-end
-
--- Speed Bypass (Movement tab)
-local function setSpeed(speed)
-    local char = player.Character
-    if char and char:FindFirstChild("Humanoid") then
-        local hum = char.Humanoid
-        hum.WalkSpeed = speed
-    end
-end
-
-local speedToggle = movementTab:toggle{
-    Name = "Enable Speed Bypass",
-    StartingState = false,
-    Callback = function(state)
-        speedEnabled = state
-        if state then
-            setSpeed(speedValue)
-            gui:set_status("Speed Bypass Enabled")
-        else
-            setSpeed(16) -- reset to default walk speed
-            gui:set_status("Speed Bypass Disabled")
-        end
-    end
+local mainTab = gui:tab{
+    Icon = "rbxassetid://6034996695",
+    Name = "Main"
 }
 
-local speedSlider = movementTab:slider{
-    Name = "Speed Value",
-    Min = 16,
-    Max = 100,
-    StartingValue = speedValue,
-    Callback = function(value)
-        speedValue = value
-        if speedEnabled then
-            setSpeed(speedValue)
-        end
-        gui:set_status("Speed set to " .. value)
-    end
-}
+-- Toggles' states
+local noFallEnabled = false
+local godModeEnabled = false
+local blackHoleEnabled = false
 
--- Status Tab Multi-Info Paragraph
+local blackHoleLoop, godModeLoop, noFallLoop
+local blackHole = Instance.new("Part")
+blackHole.Name = "BlackHole"
+blackHole.Size = Vector3.new(10,10,10)
+blackHole.Shape = Enum.PartType.Ball
+blackHole.Material = Enum.Material.Neon
+blackHole.BrickColor = BrickColor.new("Really black")
+blackHole.Transparency = 0.4
+blackHole.Anchored = false
+blackHole.CanCollide = false
+blackHole.Position = Vector3.new(0,9999,0)
+blackHole.Parent = workspace
 
-local function isFlareGunEquipped()
-    local char = player.Character
-    if char then
-        for _, tool in pairs(char:GetChildren()) do
-            if tool:IsA("Tool") and tool.Name:lower():find("flare") then
-                return true
+local bodyForce = Instance.new("BodyForce", blackHole)
+bodyForce.Force = Vector3.new(0, 0, 0)
+
+-- Functions
+local function setBlackHole(state)
+    blackHoleEnabled = state
+    if state then
+        blackHole.Parent = workspace
+        blackHole.Position = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position + Vector3.new(0,5,0) or Vector3.new(0,5,0)
+
+        blackHoleLoop = rs.Heartbeat:Connect(function()
+            if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+            blackHole.Position = player.Character.HumanoidRootPart.Position + Vector3.new(0, 5, 0)
+
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and obj ~= blackHole and (obj.Position - blackHole.Position).Magnitude < 50 then
+                    local dir = (blackHole.Position - obj.Position).Unit
+                    local dist = (blackHole.Position - obj.Position).Magnitude
+                    local force = math.clamp(5000 / (dist * dist), 0, 5000)
+                    local bf = Instance.new("BodyForce", obj)
+                    bf.Force = dir * force
+                    game.Debris:AddItem(bf, 0.3)
+                end
             end
-        end
-    end
-    return false
-end
-
-local function getPowerLeft()
-    -- Placeholder: replace with actual game logic if possible
-    return 75 -- dummy value percent
-end
-
-local function getTimeLeft()
-    local clock = Lighting.ClockTime or 0
-    if clock >= 6 and clock < 18 then
-        local timeLeft = 18 - clock
-        return string.format("Day: %.1f hours left", timeLeft)
+        end)
+        gui:set_status("Black Hole Enabled")
     else
-        local timeLeft = 24 - clock + 6
-        if timeLeft > 24 then timeLeft = timeLeft - 24 end
-        return string.format("Night: %.1f hours left", timeLeft)
+        if blackHoleLoop then blackHoleLoop:Disconnect() end
+        blackHole.Position = Vector3.new(0,9999,0)
+        gui:set_status("Black Hole Disabled")
     end
 end
 
-local statusParagraph = statusTab:textbox{
-    Name = "Status Overview",
-    Text = "Loading status...",
-    Editable = false,
-    Callback = function() end
-}
-
-spawn(function()
-    while true do
-        wait(1)
-        local flareStatus = isFlareGunEquipped() and "Yes" or "No"
-        local powerStatus = tostring(getPowerLeft()) .. "%"
-        local timeStatus = getTimeLeft()
-
-        local fullStatus = 
-            "Flare Gun Equipped: " .. flareStatus .. "\n" ..
-            "Power Left: " .. powerStatus .. "\n" ..
-            "Time Left (Day/Night): " .. timeStatus
-
-        statusParagraph:SetText(fullStatus)
+local function setGodMode(state)
+    godModeEnabled = state
+    if state then
+        local function loop()
+            if not player.Character or not player.Character:FindFirstChildOfClass("Humanoid") then return end
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            humanoid.Health = humanoid.MaxHealth
+        end
+        godModeLoop = rs.Heartbeat:Connect(loop)
+        gui:set_status("God Mode Enabled")
+    else
+        if godModeLoop then godModeLoop:Disconnect() end
+        gui:set_status("God Mode Disabled")
     end
-end)
+end
 
--- Main Tab buttons & toggles
+local function setNoFallDamage(state)
+    noFallEnabled = state
+    if state then
+        noFallLoop = rs.Heartbeat:Connect(function()
+            local char = player.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if hrp and humanoid then
+                if hrp.Velocity.Y < -100 then -- falling fast
+                    humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+                end
+            end
+        end)
+        gui:set_status("No Fall Damage Enabled")
+    else
+        if noFallLoop then noFallLoop:Disconnect() end
+        gui:set_status("No Fall Damage Disabled")
+    end
+end
 
+-- Button: Inf Yield
+mainTab:button({
+    Name = "Load Inf Yield",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+        gui:set_status("Inf Yield Loaded")
+    end
+})
+
+-- Toggle: No Fall Damage
 mainTab:toggle({
-    Name = "ESP The Rake",
+    Name = "No Fall Damage",
     StartingState = false,
     Callback = function(state)
-        espEnabled = state
-        if espEnabled then
-            enableESP()
-            gui:set_status("ESP Enabled")
-        else
-            disableESP()
-            gui:set_status("ESP Disabled")
-        end
+        setNoFallDamage(state)
     end
 })
 
+-- Toggle: God Mode
 mainTab:toggle({
-    Name = "Notify When Rake Near",
-    StartingState = true,
+    Name = "God Mode",
+    StartingState = false,
     Callback = function(state)
-        notifyEnabled = state
-        gui:set_status("Notify When Rake Near: " .. tostring(state))
+        setGodMode(state)
     end
 })
 
-mainTab:slider({
-    Name = "Notification Distance",
-    Min = 5,
-    Max = 50,
-    StartingValue = notificationDistance,
-    Callback = function(value)
-        notificationDistance = value
-        gui:set_status("Notification Distance set to " .. tostring(value))
+-- Toggle: Black Hole
+mainTab:toggle({
+    Name = "Black Hole",
+    StartingState = false,
+    Callback = function(state)
+        setBlackHole(state)
     end
 })
 
--- Notification loop
-spawn(function()
-    while true do
-        wait(2)
-        if notifyEnabled then
-            notifyRakeDistance()
-        end
-    end
+-- Reapply toggles on respawn
+player.CharacterAdded:Connect(function()
+    wait(1)
+    if noFallEnabled then setNoFallDamage(true) end
+    if godModeEnabled then setGodMode(true) end
+    if blackHoleEnabled then setBlackHole(true) end
 end)
+
+gui:set_status("AWP_HUB Loaded")
