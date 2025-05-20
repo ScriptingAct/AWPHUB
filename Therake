@@ -148,14 +148,14 @@ ESP:Toggle({
 })
 
 ESP:Toggle({
-    Text = "ESP: Items",
+    Text = "ESP: Flare Gun",
     Callback = function(state)
-        RunService:UnbindFromRenderStep("ItemESP")
+        RunService:UnbindFromRenderStep("FlareESP")
         if state then
-            RunService:BindToRenderStep("ItemESP", 1, function()
-                for _, tool in pairs(Workspace:GetDescendants()) do
-                    if tool:IsA("Tool") or tool.Name:lower():find("flare") then
-                        applyHighlight(tool, Color3.fromRGB(0, 255, 0))
+            RunService:BindToRenderStep("FlareESP", 1, function()
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("Tool") and obj.Name:lower():find("flare") then
+                        applyHighlight(obj, Color3.fromRGB(255, 255, 0))
                     end
                 end
             end)
