@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local Flags = Library.Flags
@@ -14,6 +15,7 @@ local Window = Library:Window({ Text = "The Rake: Remastered" })
 local MainTab = Window:Tab({ Text = "Main" })
 local VisualTab = Window:Tab({ Text = "Visual" })
 local StatusTab = Window:Tab({ Text = "Status" })
+local PlayerTab = Window:Tab({ Text = "Player" })
 
 -- Sections
 local Gameplay = MainTab:Section({ Text = "Gameplay" })
@@ -27,7 +29,7 @@ local FlareLabel = Status:Label({ Text = "Flare Gun: Unknown" })
 local RakeLabel = Status:Label({ Text = "Rake: Unknown" })
 local BloodHourLabel = Status:Label({ Text = "Blood Hour: Unknown" })
 
--- Status Updater
+-- Status Updater (real-time)
 RunService.RenderStepped:Connect(function()
     local flare = Workspace:FindFirstChild("FlareGun") or Workspace:FindFirstChildWhichIsA("Tool", true)
     FlareLabel:Set({ Text = flare and "Flare Gun: Spawned" or "Flare Gun: Not Found" })
@@ -39,7 +41,7 @@ RunService.RenderStepped:Connect(function()
     BloodHourLabel:Set({ Text = bh and bh.Value and "Blood Hour: ACTIVE" or "Blood Hour: Inactive" })
 end)
 
--- WalkSpeed Bypass
+-- WalkSpeed Bypass toggle
 local walkSpeedConnection
 Gameplay:Toggle({
     Text = "WalkSpeed Bypass (30)",
@@ -54,7 +56,7 @@ Gameplay:Toggle({
     end
 })
 
--- Infinite Stamina
+-- Infinite Stamina toggle with full regen logic
 Gameplay:Toggle({
     Text = "Infinite Stamina",
     Callback = function(state)
@@ -63,65 +65,101 @@ Gameplay:Toggle({
             RunService:BindToRenderStep("Stamina", 100, function()
                 local energy = LocalPlayer:FindFirstChild("Energy")
                 if energy then energy.Value = 100 end
+
+                for i,v in pairs(getgc and getgc(true) or {}) do
+                    if type(v) == "table" and rawget(v,"STAMINA_REGEN") then
+                        v.STAMINA_REGEN = 100
+                        v.JUMP_STAMINA = 0
+                        v.JUMP_COOLDOWN = 0
+                        v.STAMINA_TAKE = 0
+                        v.stamina = 100
+                    end
+                end
             end)
         end
     end
 })
 
--- Full Bright with Lighting override
+-- Full Bright toggle
 Gameplay:Toggle({
     Text = "Full Bright",
     Callback = function(state)
-        local Light = game:GetService("Lighting")
-
         local function dofullbright()
             if state then
-                Light.Ambient = Color3.new(1, 1, 1)
-                Light.ColorShift_Bottom = Color3.new(1, 1, 1)
-                Light.ColorShift_Top = Color3.new(1, 1, 1)
-                Light.Brightness = 3
-                Light.FogEnd = 100000
+                Lighting.Ambient = Color3.new(1, 1, 1)
+                Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+                Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+                Lighting.Brightness = 3
+                Lighting.FogEnd = 100000
+            else
+                Lighting.Ambient = Color3.new(0, 0, 0)
+                Lighting.ColorShift_Bottom = Color3.new(0, 0, 0)
+                Lighting.ColorShift_Top = Color3.new(0, 0, 0)
+                Lighting.Brightness = 1
+                Lighting.FogEnd = 1000
             end
         end
 
-        if Flags.FullBrightConnection then
-            Flags.FullBrightConnection:Disconnect()
-            Flags.FullBrightConnection = nil
-        end
+        dofullbright()
+        if Flags.FullBrightConnection then Flags.FullBrightConnection:Disconnect() Flags.FullBrightConnection = nil end
 
         if state then
-            dofullbright()
-            Flags.FullBrightConnection = Light.LightingChanged:Connect(dofullbright)
-        else
-            Light.Ambient = Color3.new(0, 0, 0)
-            Light.ColorShift_Bottom = Color3.new(0, 0, 0)
-            Light.ColorShift_Top = Color3.new(0, 0, 0)
-            Light.Brightness = 1
-            Light.FogEnd = 1000
+            Flags.FullBrightConnection = Lighting.LightingChanged:Connect(dofullbright)
         end
     end
 })
 
--- No Fall Damage
+-- No Fall Damage hook (metatable hook)
+_G.NoFallDMG = false
+do
+    local mt = getrawmetatable(game)
+    local oldNamecall = mt.__namecall
+    setreadonly(mt, false)
+
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+
+        if _G.NoFallDMG and tostring(self) == "FD_Event" and method == "FireServer" then
+            args[1] = 0
+            args[2] = 0
+            return self.FireServer(self, unpack(args))
+        end
+
+        return oldNamecall(self, ...)
+    end)
+
+    setreadonly(mt, true)
+end
+
 Gameplay:Toggle({
     Text = "No Fall Damage",
     Callback = function(state)
-        local function onChar(char)
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum and state then
-                hum.StateChanged:Connect(function(_, newState)
-                    if newState == Enum.HumanoidStateType.Freefall then
-                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        _G.NoFallDMG = state
+    end,
+})
+
+-- God Mode (Infinite Health Regen)
+local godModeConnection
+Gameplay:Toggle({
+    Text = "God Mode (Infinite Regen)",
+    Callback = function(state)
+        if godModeConnection then godModeConnection:Disconnect() godModeConnection = nil end
+        if state then
+            godModeConnection = RunService.Heartbeat:Connect(function(deltaTime)
+                local char = LocalPlayer.Character
+                if char then
+                    local hum = char:FindFirstChildWhichIsA("Humanoid")
+                    if hum and hum.Health < hum.MaxHealth then
+                        hum.Health = math.min(hum.Health + (50 * deltaTime), hum.MaxHealth)
                     end
-                end)
-            end
+                end
+            end)
         end
-        if LocalPlayer.Character then onChar(LocalPlayer.Character) end
-        LocalPlayer.CharacterAdded:Connect(onChar)
     end
 })
 
--- Morphs
+-- Morphing function
 local function MorphInto(name)
     local morph = ReplicatedStorage:FindFirstChild("Morphs") and ReplicatedStorage.Morphs:FindFirstChild(name)
     if morph then ReplicatedStorage:WaitForChild("CharChange"):FireServer(morph) end
@@ -133,9 +171,7 @@ Morphs:Button({ Text = "Shadow Rake", Callback = function() MorphInto("ShadowHou
 Morphs:Button({ Text = "Vision Rake", Callback = function() MorphInto("VisionRakeMorph") end })
 Morphs:Button({ Text = "Corrupted Rake", Callback = function() MorphInto("CorrupteredRakeMorph") end })
 
--- Teleport to Flare Gun
-local autoTPConnection
-
+-- Teleport to Flare Gun (Manual only)
 Teleport:Button({
     Text = "Teleport to Flare Gun",
     Callback = function()
@@ -146,25 +182,6 @@ Teleport:Button({
                 end
                 break
             end
-        end
-    end
-})
-
-Teleport:Toggle({
-    Text = "Auto Teleport to Flare Gun",
-    Callback = function(state)
-        if autoTPConnection then autoTPConnection:Disconnect() end
-        if state then
-            autoTPConnection = RunService.RenderStepped:Connect(function()
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Tool") and obj.Name:lower():find("flare") then
-                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                            LocalPlayer.Character.HumanoidRootPart.CFrame = obj.Handle.CFrame + Vector3.new(0, 3, 0)
-                        end
-                        break
-                    end
-                end
-            end)
         end
     end
 })
@@ -190,7 +207,7 @@ local function clearESP()
     activeESP = {}
 end
 
--- ESP Toggles
+-- ESP toggles
 ESP:Toggle({
     Text = "ESP: Rake",
     Callback = function(state)
@@ -227,22 +244,32 @@ ESP:Toggle({
     end
 })
 
-ESP:Toggle({
-    Text = "ESP: Flare Gun",
+-- Pass Noclip Chair function
+local noclipConnection
+Gameplay:Toggle({
+    Text = "Pass Noclip Chair",
     Callback = function(state)
-        RunService:UnbindFromRenderStep("FlareESP")
+        if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
         if state then
-            RunService:BindToRenderStep("FlareESP", 1, function()
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Tool") and obj.Name:lower():find("flare") then
-                        applyHighlight(obj, Color3.fromRGB(255, 255, 0))
+            noclipConnection = RunService.Stepped:Connect(function()
+                local char = LocalPlayer.Character
+                if char then
+                    for _, part in pairs(char:GetChildren()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
                     end
                 end
             end)
         else
-            clearESP()
+            local char = LocalPlayer.Character
+            if char then
+                for _, part in pairs(char:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
         end
     end
 })
-
-MainTab:Select()
