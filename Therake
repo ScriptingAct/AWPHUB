@@ -35,7 +35,7 @@ Window:EditOpenButton({
 local Tabs = {
     ESP = Window:Tab({ Title = "ESP", Icon = "eye" }),
     Settings = Window:Tab({ Title = "Settings", Icon = "sliders-horizontal" }),
-    AutoFarm = Window:Tab({ Title = "AutoFarm", Icon = "tractor" })
+    AutoFarm = Window:Tab({ Title = "Auto_Farm", Icon = "tractor" })
 }
 
 -- ESP Logic
@@ -360,67 +360,8 @@ local dropdown = Tabs.Profiles:Dropdown({
     end
 })
 
-Tabs.Profiles:Button({
-    Title = "Load Profile",
-    Callback = function()
-        if currentProfile ~= "" then
-            local data = LoadProfile(currentProfile)
-            if data then
-                WindUI:Notify({ Title = "Loaded", Content = "Loaded profile: " .. currentProfile, Duration = 4 })
-            end
-        end
-    end
-})
-
-Tabs.Profiles:Button({
-    Title = "Refresh List",
-    Callback = function()
-        dropdown:Refresh(ListProfiles())
-    end
-})
-
-Tabs.CodeTab:Code({
-    Title = "example-code.luau",
-    Code = [[-- Example Luau code to test syntax highlighting
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-
-local function factorial(n)
-    if n <= 1 then
-        return 1
-    else
-        return n * factorial(n - 1)
-    end
-end
-
 local result = factorial(5)
 print("Factorial of 5 is:", result)
-
-local playerName = "Player"
-local score = 100
-
-if score >= 100 then
-    print(playerName .. " earned an achievement!")
-else
-    warn("Need more points.")
-end
-
--- Table with nested values
-local playerStats = {
-    name = "Player",
-    health = 100,
-    inventory = {"sword", "shield", "potion"}
-}
-
-for i, item in ipairs(playerStats.inventory) do
-    print("Item in inventory:", item)
-end]],
-})
-
-Tabs.CodeTab:Code({
-    Code = [[print("WindUI on top!")]],
-})
-
 
 local TweenService = game:GetService("TweenService")
 local isLooping = false
@@ -453,7 +394,7 @@ local function tweenTo(part)
 end
 
 -- Start looping tween
-Tabs.AutoFarm:Toggle({
+Tabs.Auto_Farm:Toggle({
     Title = "Loop Tween to Safe Zone",
     Icon = "repeat",
     Value = false,
@@ -487,7 +428,7 @@ Tabs.AutoFarm:Toggle({
 
 
 -- Auto Avoid Rake
-Tabs.AutoFarm:Toggle({
+Tabs.Auto_Farm:Toggle({
     Title = "Auto Avoid Rake",
     Icon = "alert-octagon",
     Value = false,
@@ -535,7 +476,7 @@ Tabs.AutoFarm:Toggle({
 
 
 -- Loop Tween to Safe Zone Every 2 Seconds
-Tabs.AutoFarm:Toggle({
+Tabs.Auto_Farm:Toggle({
     Title = "Tween to Safe Zone (Every 2s)",
     Icon = "refresh-cw",
     Value = false,
@@ -566,7 +507,7 @@ Tabs.AutoFarm:Toggle({
 })
 
 -- Anti-Tween & Anti-Teleport Detection Bypass
-Tabs.AutoFarm:Toggle({
+Tabs.Auto_Farm:Toggle({
     Title = "Bypass Tween/Teleport Detection",
     Icon = "shield-off",
     Value = false,
@@ -605,7 +546,7 @@ Tabs.AutoFarm:Toggle({
 
 
 -- Tween to Safe Zone Every 5 Seconds
-Tabs.AutoFarm:Toggle({
+Tabs.Auto_Farm:Toggle({
     Title = "Tween to Safe Zone (Every 5s)",
     Icon = "clock",
     Value = false,
@@ -635,12 +576,8 @@ Tabs.AutoFarm:Toggle({
     end
 })
 
-
--- Section: Auto Farm OP
-Tabs.AutoFarm:Section("Auto Farm OP")
-
 -- Auto Collect Items (Flare Gun, Scrap, Drops)
-Tabs.AutoFarm:Toggle({
+Tabs.Auto_Farm:Toggle({
     Title = "Auto Collect Items",
     Icon = "package-search",
     Value = false,
