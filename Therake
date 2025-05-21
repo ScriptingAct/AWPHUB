@@ -254,22 +254,3 @@ Tabs.Settings:Toggle({
         settings().Rendering.QualityLevel = state and Enum.QualityLevel.Level01 or Enum.QualityLevel.Automatic
     end
 })
-
--- Anti-Kick
-Tabs.Settings:Toggle({
-    Title = "Anti-Kick",
-    Icon = "x-octagon",
-    Value = true,
-    Callback = function(state)
-        if state then
-            local mt = getrawmetatable(game)
-            setreadonly(mt, false)
-            local old = mt.__namecall
-            mt.__namecall = newcclosure(function(self, ...)
-                if getnamecallmethod() == "Kick" then return warn("[AntiKick] Blocked kick") end
-                return old(self, ...)
-            end)
-            setreadonly(mt, true)
-        end
-    end
-})
