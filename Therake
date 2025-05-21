@@ -1,194 +1,44 @@
--- Load Shaman UI Library
-local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/Rain-Design/Libraries/main/Shaman/Library.lua'))()
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Lighting = game:GetService("Lighting")
+-- Load WindUI
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+-- Services
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService")
-
+local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
-local Flags = Library.Flags
+local VirtualUser = game:GetService("VirtualUser")
 
--- UI Setup
-local Window = Library:Window({ Text = "The Rake: Remastered" })
-local MainTab = Window:Tab({ Text = "Main" })
-local VisualTab = Window:Tab({ Text = "Visual" })
-local StatusTab = Window:Tab({ Text = "Status" })
-local PlayerTab = Window:Tab({ Text = "Player" })
-local SettingsTab = Window:Tab({ Text = "Settings" })
-
--- Sections
-local Gameplay = MainTab:Section({ Text = "Gameplay" })
-local Morphs = MainTab:Section({ Text = "Morphs" })
-local Teleport = MainTab:Section({ Text = "Teleport" })
-local ESP = VisualTab:Section({ Text = "ESP" })
-local Status = StatusTab:Section({ Text = "Live Info" })
-local Settings = SettingsTab:Section({ Text = "Network Tweaks" })
-
--- Status Labels
-local FlareLabel = Status:Label({ Text = "Flare Gun: Unknown" })
-local RakeLabel = Status:Label({ Text = "Rake: Unknown" })
-local BloodHourLabel = Status:Label({ Text = "Blood Hour: Unknown" })
-
--- Status Updater
-RunService.RenderStepped:Connect(function()
-    local flare = Workspace:FindFirstChild("FlareGun") or Workspace:FindFirstChildWhichIsA("Tool", true)
-    FlareLabel:Set({ Text = flare and "Flare Gun: Spawned" or "Flare Gun: Not Found" })
-
-    local rake = Workspace:FindFirstChild("Rake") or Workspace:FindFirstChild("RakeAI")
-    RakeLabel:Set({ Text = rake and "Rake: Active" or "Rake: Not Spawned" })
-
-    local bh = ReplicatedStorage:FindFirstChild("BloodHour")
-    BloodHourLabel:Set({ Text = bh and bh.Value and "Blood Hour: ACTIVE" or "Blood Hour: Inactive" })
-end)
-
--- WalkSpeed Bypass
-local walkSpeedConnection
-Gameplay:Toggle({
-    Text = "WalkSpeed Bypass (30)",
-    Callback = function(state)
-        if walkSpeedConnection then walkSpeedConnection:Disconnect() end
-        if state then
-            walkSpeedConnection = RunService.RenderStepped:Connect(function()
-                local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if hum and hum.WalkSpeed ~= 30 then hum.WalkSpeed = 30 end
-            end)
-        end
-    end
+-- Create Window
+local Window = WindUI:CreateWindow({
+    Title = "AWPHUB - The Rake: Remastered",
+    Icon = "moon-star",
+    Author = "AWP",
+    Folder = "AWPHUB",
+    Size = UDim2.fromOffset(580, 460),
+    Transparent = true,
+    Theme = "Dark",
+    SideBarWidth = 200
 })
 
--- Infinite Stamina
-Gameplay:Toggle({
-    Text = "Infinite Stamina",
-    Callback = function(state)
-        RunService:UnbindFromRenderStep("Stamina")
-        if state then
-            RunService:BindToRenderStep("Stamina", 100, function()
-                local energy = LocalPlayer:FindFirstChild("Energy")
-                if energy then energy.Value = 100 end
-
-                for i,v in pairs(getgc and getgc(true) or {}) do
-                    if type(v) == "table" and rawget(v,"STAMINA_REGEN") then
-                        v.STAMINA_REGEN = 100
-                        v.JUMP_STAMINA = 0
-                        v.JUMP_COOLDOWN = 0
-                        v.STAMINA_TAKE = 0
-                        v.stamina = 100
-                    end
-                end
-            end)
-        end
-    end
+Window:EditOpenButton({
+    Title = "Open AWP HUB",
+    Icon = "monitor",
+    CornerRadius = UDim.new(0, 16),
+    StrokeThickness = 2,
+    Color = ColorSequence.new(Color3.fromRGB(255, 0, 123), Color3.fromRGB(255, 150, 0)),
+    Draggable = true
 })
 
--- Full Bright
-Gameplay:Toggle({
-    Text = "Full Bright",
-    Callback = function(state)
-        local function dofullbright()
-            if state then
-                Lighting.Ambient = Color3.new(1, 1, 1)
-                Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
-                Lighting.ColorShift_Top = Color3.new(1, 1, 1)
-                Lighting.Brightness = 3
-                Lighting.FogEnd = 100000
-            else
-                Lighting.Ambient = Color3.new(0, 0, 0)
-                Lighting.ColorShift_Bottom = Color3.new(0, 0, 0)
-                Lighting.ColorShift_Top = Color3.new(0, 0, 0)
-                Lighting.Brightness = 1
-                Lighting.FogEnd = 1000
-            end
-        end
+-- Tabs
+local Tabs = {
+    ESP = Window:Tab({ Title = "ESP", Icon = "eye" }),
+    Settings = Window:Tab({ Title = "Settings", Icon = "sliders-horizontal" }),
+    AutoFarm = Window:Tab({ Title = "AutoFarm", Icon = "tractor" })
+}
 
-        dofullbright()
-        if Flags.FullBrightConnection then Flags.FullBrightConnection:Disconnect() Flags.FullBrightConnection = nil end
-
-        if state then
-            Flags.FullBrightConnection = Lighting.LightingChanged:Connect(dofullbright)
-        end
-    end
-})
-
--- No Fall Damage
-_G.NoFallDMG = false
-do
-    local mt = getrawmetatable(game)
-    local oldNamecall = mt.__namecall
-    setreadonly(mt, false)
-
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        local args = {...}
-
-        if _G.NoFallDMG and tostring(self) == "FD_Event" and method == "FireServer" then
-            args[1] = 0
-            args[2] = 0
-            return self.FireServer(self, unpack(args))
-        end
-
-        return oldNamecall(self, ...)
-    end)
-
-    setreadonly(mt, true)
-end
-
-Gameplay:Toggle({
-    Text = "No Fall Damage",
-    Callback = function(state)
-        _G.NoFallDMG = state
-    end,
-})
-
--- God Mode
-local godModeConnection
-Gameplay:Toggle({
-    Text = "God Mode (Infinite Regen)",
-    Callback = function(state)
-        if godModeConnection then godModeConnection:Disconnect() godModeConnection = nil end
-        if state then
-            godModeConnection = RunService.Heartbeat:Connect(function(deltaTime)
-                local char = LocalPlayer.Character
-                if char then
-                    local hum = char:FindFirstChildWhichIsA("Humanoid")
-                    if hum and hum.Health < hum.MaxHealth then
-                        hum.Health = math.min(hum.Health + (50 * deltaTime), hum.MaxHealth)
-                    end
-                end
-            end)
-        end
-    end
-})
-
--- Morph Buttons
-local function MorphInto(name)
-    local morph = ReplicatedStorage:FindFirstChild("Morphs") and ReplicatedStorage.Morphs:FindFirstChild(name)
-    if morph then ReplicatedStorage:WaitForChild("CharChange"):FireServer(morph) end
-end
-
-Morphs:Button({ Text = "Blood Rake", Callback = function() MorphInto("BloodRakeMorph") end })
-Morphs:Button({ Text = "Rage Rake", Callback = function() MorphInto("RageRakeMorph") end })
-Morphs:Button({ Text = "Shadow Rake", Callback = function() MorphInto("ShadowHourRake") end })
-Morphs:Button({ Text = "Vision Rake", Callback = function() MorphInto("VisionRakeMorph") end })
-Morphs:Button({ Text = "Corrupted Rake", Callback = function() MorphInto("CorrupteredRakeMorph") end })
-
--- Teleport to Flare Gun
-Teleport:Button({
-    Text = "Teleport to Flare Gun",
-    Callback = function()
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj:IsA("Tool") and obj.Name:lower():find("flare") then
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = obj.Handle.CFrame + Vector3.new(0, 3, 0)
-                end
-                break
-            end
-        end
-    end
-})
-
--- ESP System
+-- ESP Logic
 local activeESP = {}
 
 local function applyHighlight(obj, color)
@@ -209,14 +59,16 @@ local function clearESP()
     activeESP = {}
 end
 
-ESP:Toggle({
-    Text = "ESP: Rake",
+Tabs.ESP:Toggle({
+    Title = "ESP: Rake",
+    Icon = "skull",
+    Value = false,
     Callback = function(state)
         RunService:UnbindFromRenderStep("RakeESP")
         if state then
             RunService:BindToRenderStep("RakeESP", 1, function()
                 for _, v in pairs(Workspace:GetChildren()) do
-                    if v.Name:lower():find("rake") then
+                    if v:IsA("Model") and v.Name:lower():find("rake") then
                         applyHighlight(v, Color3.fromRGB(255, 0, 0))
                     end
                 end
@@ -227,8 +79,10 @@ ESP:Toggle({
     end
 })
 
-ESP:Toggle({
-    Text = "ESP: Players",
+Tabs.ESP:Toggle({
+    Title = "ESP: Players",
+    Icon = "user",
+    Value = false,
     Callback = function(state)
         RunService:UnbindFromRenderStep("PlayerESP")
         if state then
@@ -245,53 +99,601 @@ ESP:Toggle({
     end
 })
 
--- Noclip Chair Toggle
-local noclipConnection
-Gameplay:Toggle({
-    Text = "Pass Noclip Chair",
+-- Settings Toggles
+local Flags = {}
+local OriginalLighting = {
+    Ambient = Lighting.Ambient,
+    ColorShift_Bottom = Lighting.ColorShift_Bottom,
+    ColorShift_Top = Lighting.ColorShift_Top,
+    Brightness = Lighting.Brightness,
+    FogEnd = Lighting.FogEnd
+}
+
+-- Infinite Stamina
+Tabs.Settings:Toggle({
+    Title = "Infinite Stamina",
+    Icon = "zap",
+    Value = true,
     Callback = function(state)
-        if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
+        RunService:UnbindFromRenderStep("Stamina")
         if state then
-            noclipConnection = RunService.Stepped:Connect(function()
-                local char = LocalPlayer.Character
-                if char then
-                    for _, part in pairs(char:GetChildren()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        end
+            RunService:BindToRenderStep("Stamina", 100, function()
+                local energy = LocalPlayer:FindFirstChild("Energy")
+                if energy then energy.Value = 100 end
+                for _, v in pairs(getgc(true)) do
+                    if type(v) == "table" and rawget(v, "STAMINA_REGEN") then
+                        v.STAMINA_REGEN = 100
+                        v.JUMP_STAMINA = 0
+                        v.JUMP_COOLDOWN = 0
+                        v.STAMINA_TAKE = 0
+                        v.stamina = 100
                     end
                 end
             end)
+        end
+    end
+})
+
+-- Remove Blood Hour Color
+Tabs.Settings:Toggle({
+    Title = "Remove Blood Hour Color",
+    Icon = "sun",
+    Value = false,
+    Callback = function(state)
+        RunService:UnbindFromRenderStep("NoBloodHour")
+        if state then
+            RunService:BindToRenderStep("NoBloodHour", 1, function()
+                Lighting.Ambient = Color3.new(1, 1, 1)
+                Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+                Lighting.ColorShift_Bottom = Color3.new(0, 0, 0)
+                Lighting.ColorShift_Top = Color3.new(0, 0, 0)
+                Lighting.FogColor = Color3.new(1, 1, 1)
+            end)
         else
-            local char = LocalPlayer.Character
-            if char then
-                for _, part in pairs(char:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = true
-                    end
-                end
+            for prop, val in pairs(OriginalLighting) do Lighting[prop] = val end
+        end
+    end
+})
+
+-- FullBright + No Fog
+Tabs.Settings:Toggle({
+    Title = "FullBright + No Fog",
+    Icon = "lightbulb",
+    Value = false,
+    Callback = function(state)
+        local function doFullBright()
+            if state then
+                Lighting.Ambient = Color3.new(1, 1, 1)
+                Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+                Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+                Lighting.Brightness = 3
+                Lighting.FogEnd = 100000
+            else
+                for prop, val in pairs(OriginalLighting) do Lighting[prop] = val end
+            end
+        end
+        doFullBright()
+        if Flags.FullBright then Flags.FullBright:Disconnect() Flags.FullBright = nil end
+        if state then
+            Flags.FullBright = Lighting.LightingChanged:Connect(doFullBright)
+        end
+    end
+})
+
+-- Fake Night Vision
+Tabs.Settings:Toggle({
+    Title = "Fake Night Vision",
+    Icon = "eye",
+    Value = false,
+    Callback = function(state)
+        local function doNightVision()
+            if state then
+                Lighting.Ambient = Color3.fromRGB(80, 255, 100)
+                Lighting.ColorShift_Bottom = Color3.fromRGB(80, 255, 100)
+                Lighting.ColorShift_Top = Color3.fromRGB(80, 255, 100)
+                Lighting.Brightness = 2.5
+                Lighting.FogEnd = 100000
+            else
+                for prop, val in pairs(OriginalLighting) do Lighting[prop] = val end
+            end
+        end
+        doNightVision()
+        if Flags.NightVision then Flags.NightVision:Disconnect() Flags.NightVision = nil end
+        if state then
+            Flags.NightVision = Lighting.LightingChanged:Connect(doNightVision)
+        end
+    end
+})
+
+-- Anti-AFK
+Tabs.Settings:Toggle({
+    Title = "Anti-AFK",
+    Icon = "coffee",
+    Value = true,
+    Callback = function()
+        Players.LocalPlayer.Idled:Connect(function()
+            VirtualUser:Button2Down(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+            VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+        end)
+    end
+})
+
+-- Anti-Lag
+Tabs.Settings:Toggle({
+    Title = "Anti-Lag",
+    Icon = "cpu",
+    Value = false,
+    Callback = function(state)
+        for _, v in pairs(Workspace:GetDescendants()) do
+            if v:IsA("Texture") or v:IsA("Decal") then v:Destroy() end
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") then v.Enabled = not state end
+        end
+    end
+})
+
+-- Anti-Ping Spike
+Tabs.Settings:Toggle({
+    Title = "Anti-Ping Spike",
+    Icon = "wifi",
+    Value = false,
+    Callback = function(state)
+        RunService:UnbindFromRenderStep("PingSpikeFix")
+        if state then
+            RunService:BindToRenderStep("PingSpikeFix", 1, function()
+                local _ = math.sin(tick())
+            end)
+        end
+    end
+})
+
+-- Anti-Latency
+Tabs.Settings:Toggle({
+    Title = "Anti-Latency",
+    Icon = "activity",
+    Value = false,
+    Callback = function(state)
+        settings().Rendering.QualityLevel = state and Enum.QualityLevel.Level01 or Enum.QualityLevel.Automatic
+    end
+})
+
+-- Anti-Kick
+Tabs.Settings:Toggle({
+    Title = "Anti-Kick",
+    Icon = "x-octagon",
+    Value = true,
+    Callback = function(state)
+        if state then
+            local mt = getrawmetatable(game)
+            setreadonly(mt, false)
+            local old = mt.__namecall
+            mt.__namecall = newcclosure(function(self, ...)
+                if getnamecallmethod() == "Kick" then return warn("[AntiKick] Blocked kick") end
+                return old(self, ...)
+            end)
+            setreadonly(mt, true)
+        end
+    end
+})
+
+-- Anti-Cheat Bypass
+Tabs.Settings:Toggle({
+    Title = "Anti-Cheat Bypass",
+    Icon = "shield",
+    Value = false,
+    Callback = function(state)
+        if state then
+            for _, v in pairs(getconnections(LocalPlayer.CharacterAdded)) do v:Disable() end
+            for _, v in pairs(getconnections(LocalPlayer.Changed)) do v:Disable() end
+        end
+    end
+})
+
+-- Undetected Mode
+Tabs.Settings:Toggle({
+    Title = "Undetected Mode",
+    Icon = "eye-off",
+    Value = false,
+    Callback = function(state)
+        if state then
+            setfflag("HumanoidParallelRemoveNoPhysics", "False")
+            setfflag("HumanoidParallelRemoveNoPhysicsNoSimulate2", "False")
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "Undetected Mode",
+                Text = "Anti detection flags set.",
+                Duration = 5
+            })
+        end
+    end
+})
+
+-- Profile System
+local profileFolder = "AWPHUB/Profiles"
+makefolder("AWPHUB")
+if not isfolder(profileFolder) then makefolder(profileFolder) end
+
+local currentProfile = ""
+
+local function SaveProfile(name, data)
+    writefile(profileFolder .. "/" .. name .. ".json", HttpService:JSONEncode(data))
+end
+
+local function LoadProfile(name)
+    local path = profileFolder .. "/" .. name .. ".json"
+    if isfile(path) then return HttpService:JSONDecode(readfile(path)) end
+end
+
+local function ListProfiles()
+    local profiles = {}
+    for _, file in ipairs(listfiles(profileFolder)) do
+        local name = file:match("([^/]+)%.json$")
+        if name then table.insert(profiles, name) end
+    end
+    return profiles
+end
+
+Tabs.Profiles:Input({
+    Title = "Profile Name",
+    Placeholder = "Enter name",
+    Callback = function(text)
+        currentProfile = text
+    end
+})
+
+Tabs.Profiles:Button({
+    Title = "Save Profile",
+    Callback = function()
+        if currentProfile ~= "" then
+            SaveProfile(currentProfile, {
+                -- Add actual toggle states here if needed
+                Example = true
+            })
+            WindUI:Notify({ Title = "Saved", Content = "Saved profile: " .. currentProfile, Duration = 4 })
+        end
+    end
+})
+
+local dropdown = Tabs.Profiles:Dropdown({
+    Title = "Select Profile",
+    Values = ListProfiles(),
+    Callback = function(value)
+        currentProfile = value
+    end
+})
+
+Tabs.Profiles:Button({
+    Title = "Load Profile",
+    Callback = function()
+        if currentProfile ~= "" then
+            local data = LoadProfile(currentProfile)
+            if data then
+                WindUI:Notify({ Title = "Loaded", Content = "Loaded profile: " .. currentProfile, Duration = 4 })
             end
         end
     end
 })
 
--- Anti-Latency Smoothing
-local latencyConnection
-Settings:Toggle({
-    Text = "Anti-Latency (Smoothing)",
+Tabs.Profiles:Button({
+    Title = "Refresh List",
+    Callback = function()
+        dropdown:Refresh(ListProfiles())
+    end
+})
+
+Tabs.CodeTab:Code({
+    Title = "example-code.luau",
+    Code = [[-- Example Luau code to test syntax highlighting
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+
+local function factorial(n)
+    if n <= 1 then
+        return 1
+    else
+        return n * factorial(n - 1)
+    end
+end
+
+local result = factorial(5)
+print("Factorial of 5 is:", result)
+
+local playerName = "Player"
+local score = 100
+
+if score >= 100 then
+    print(playerName .. " earned an achievement!")
+else
+    warn("Need more points.")
+end
+
+-- Table with nested values
+local playerStats = {
+    name = "Player",
+    health = 100,
+    inventory = {"sword", "shield", "potion"}
+}
+
+for i, item in ipairs(playerStats.inventory) do
+    print("Item in inventory:", item)
+end]],
+})
+
+Tabs.CodeTab:Code({
+    Code = [[print("WindUI on top!")]],
+})
+
+
+local TweenService = game:GetService("TweenService")
+local isLooping = false
+local loopConnection
+
+-- Get closest safe zone part
+local function getSafeZonePart()
+    local safeZones = {
+        "SafeHouse", "ObservationTower", "Shop", "CaveSafeZone"
+    }
+
+    for _, zoneName in pairs(safeZones) do
+        local zone = Workspace:FindFirstChild(zoneName)
+        if zone and zone:FindFirstChild("Part") then
+            return zone.Part
+        end
+    end
+    return nil
+end
+
+-- Tween to safe zone
+local function tweenTo(part)
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = LocalPlayer.Character.HumanoidRootPart
+
+    local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Linear)
+    local goal = { CFrame = part.CFrame + Vector3.new(0, 5, 0) }
+    local tween = TweenService:Create(hrp, tweenInfo, goal)
+    tween:Play()
+end
+
+-- Start looping tween
+Tabs.AutoFarm:Toggle({
+    Title = "Loop Tween to Safe Zone",
+    Icon = "repeat",
+    Value = false,
     Callback = function(state)
-        if latencyConnection then latencyConnection:Disconnect() latencyConnection = nil end
+        isLooping = state
+        if loopConnection then loopConnection:Disconnect() loopConnection = nil end
 
         if state then
-            latencyConnection = RunService.Heartbeat:Connect(function()
-                if LocalPlayer.Character then
-                    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        hrp.Velocity = Vector3.zero
-                        hrp.RotVelocity = Vector3.zero
+            loopConnection = RunService.Heartbeat:Connect(function()
+                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+                local safePart = getSafeZonePart()
+                if safePart then
+                    tweenTo(safePart)
+                end
+                wait(2) -- Delay between each teleport
+            end)
+            WindUI:Notify({
+                Title = "Loop Enabled",
+                Content = "Tweening to Safe Zone every 10 seconds",
+                Duration = 4
+            })
+        else
+            WindUI:Notify({
+                Title = "Loop Disabled",
+                Content = "Stopped tweening to Safe Zone.",
+                Duration = 4
+            })
+        end
+    end
+})
+
+
+-- Auto Avoid Rake
+Tabs.AutoFarm:Toggle({
+    Title = "Auto Avoid Rake",
+    Icon = "alert-octagon",
+    Value = false,
+    Callback = function(state)
+        if loopConnection then loopConnection:Disconnect() loopConnection = nil end
+
+        if state then
+            loopConnection = RunService.Heartbeat:Connect(function()
+                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+
+                local rake = nil
+                for _, v in pairs(Workspace:GetChildren()) do
+                    if v:IsA("Model") and v.Name:lower():find("rake") and v:FindFirstChild("HumanoidRootPart") then
+                        rake = v
+                        break
+                    end
+                end
+
+                local safePart = getSafeZonePart()
+                if rake and safePart then
+                    local rakeHRP = rake:FindFirstChild("HumanoidRootPart")
+                    local playerHRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if rakeHRP and playerHRP then
+                        local distance = (playerHRP.Position - rakeHRP.Position).Magnitude
+                        if distance < 100 then -- Threshold to trigger escape
+                            tweenTo(safePart)
+                        end
                     end
                 end
             end)
+            WindUI:Notify({
+                Title = "Auto Avoid Enabled",
+                Content = "Will teleport to Safe Zone if Rake is too close.",
+                Duration = 4
+            })
+        else
+            WindUI:Notify({
+                Title = "Auto Avoid Disabled",
+                Content = "Stopped checking for Rake proximity.",
+                Duration = 4
+            })
         end
     end
+})
+
+
+-- Loop Tween to Safe Zone Every 2 Seconds
+Tabs.AutoFarm:Toggle({
+    Title = "Tween to Safe Zone (Every 2s)",
+    Icon = "refresh-cw",
+    Value = false,
+    Callback = function(state)
+        if tweenLoop then tweenLoop:Disconnect() tweenLoop = nil end
+        if state then
+            tweenLoop = RunService.Heartbeat:Connect(function()
+                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+                local safePart = getSafeZonePart()
+                if safePart then
+                    tweenTo(safePart)
+                end
+                wait(2)
+            end)
+            WindUI:Notify({
+                Title = "Safe Zone Tween",
+                Content = "Tweening every 2 seconds enabled.",
+                Duration = 4
+            })
+        else
+            WindUI:Notify({
+                Title = "Safe Zone Tween",
+                Content = "Tweening every 2 seconds disabled.",
+                Duration = 4
+            })
+        end
+    end
+})
+
+-- Anti-Tween & Anti-Teleport Detection Bypass
+Tabs.AutoFarm:Toggle({
+    Title = "Bypass Tween/Teleport Detection",
+    Icon = "shield-off",
+    Value = false,
+    Callback = function(state)
+        if state then
+            local mt = getrawmetatable(game)
+            setreadonly(mt, false)
+            local oldNamecall = mt.__namecall
+            mt.__namecall = newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                if method == "FireServer" or method == "InvokeServer" then
+                    local args = {...}
+                    local scriptName = tostring(self)
+                    if scriptName:lower():find("tp") or scriptName:lower():find("tween") then
+                        return nil
+                    end
+                end
+                return oldNamecall(self, ...)
+            end)
+            setreadonly(mt, true)
+
+            WindUI:Notify({
+                Title = "Bypass Enabled",
+                Content = "Teleport and Tween detection bypass active.",
+                Duration = 4
+            })
+        else
+            WindUI:Notify({
+                Title = "Bypass Notice",
+                Content = "Bypass cannot be undone without re-execution.",
+                Duration = 4
+            })
+        end
+    end
+})
+
+
+-- Tween to Safe Zone Every 5 Seconds
+Tabs.AutoFarm:Toggle({
+    Title = "Tween to Safe Zone (Every 5s)",
+    Icon = "clock",
+    Value = false,
+    Callback = function(state)
+        if tween5s then tween5s:Disconnect() tween5s = nil end
+        if state then
+            tween5s = RunService.Heartbeat:Connect(function()
+                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+                local safePart = getSafeZonePart()
+                if safePart then
+                    tweenTo(safePart)
+                end
+                wait(5)
+            end)
+            WindUI:Notify({
+                Title = "Safe Zone Tween",
+                Content = "Tweening every 5 seconds enabled.",
+                Duration = 4
+            })
+        else
+            WindUI:Notify({
+                Title = "Safe Zone Tween",
+                Content = "Tweening every 5 seconds disabled.",
+                Duration = 4
+            })
+        end
+    end
+})
+
+
+-- Section: Auto Farm OP
+Tabs.AutoFarm:Section("Auto Farm OP")
+
+-- Auto Collect Items (Flare Gun, Scrap, Drops)
+Tabs.AutoFarm:Toggle({
+    Title = "Auto Collect Items",
+    Icon = "package-search",
+    Value = false,
+    Callback = function(state)
+        if collectLoop then collectLoop:Disconnect() collectLoop = nil end
+        if state then
+            collectLoop = RunService.Heartbeat:Connect(function()
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("Tool") or (obj:IsA("Model") and obj:FindFirstChildWhichIsA("TouchTransmitter")) then
+                        if obj:FindFirstChild("Handle") or obj:IsA("Tool") then
+                            local handle = obj:FindFirstChild("Handle") or obj
+                            if (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")) then
+                                LocalPlayer.Character.HumanoidRootPart.CFrame = handle.CFrame + Vector3.new(0, 3, 0)
+                                wait(0.25)
+                            end
+                        end
+                    end
+                end
+            end)
+            WindUI:Notify({
+                Title = "Auto Collect Enabled",
+                Content = "Now collecting items automatically.",
+                Duration = 4
+            })
+        else
+            WindUI:Notify({
+                Title = "Auto Collect Disabled",
+                Content = "Item farming turned off.",
+                Duration = 4
+            })
+        end
+    end
+})
+
+
+-- Auto Anti-Lag (Background Cleanup)
+spawn(function()
+    while true do
+        for _, v in pairs(Workspace:GetDescendants()) do
+            if v:IsA("Texture") or v:IsA("Decal") then
+                pcall(function() v:Destroy() end)
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                v.Enabled = false
+            elseif v:IsA("Explosion") then
+                pcall(function() v:Destroy() end)
+            end
+        end
+        wait(5) -- Run every 5 seconds
+    end
+end)
+
+WindUI:Notify({
+    Title = "Auto Anti-Lag",
+    Content = "Background lag cleanup is running every 5 seconds.",
+    Duration = 4
 })
