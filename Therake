@@ -35,7 +35,6 @@ Window:EditOpenButton({
 local Tabs = {
     ESP = Window:Tab({ Title = "ESP", Icon = "eye" }),
     Settings = Window:Tab({ Title = "Settings", Icon = "sliders-horizontal" }),
-    AutoFarm = Window:Tab({ Title = "Auto_Farm", Icon = "tractor" })
 }
 
 -- ESP Logic
@@ -394,7 +393,7 @@ local function tweenTo(part)
 end
 
 -- Start looping tween
-Tabs.Auto_Farm:Toggle({
+Tabs.Settings:Toggle({
     Title = "Loop Tween to Safe Zone",
     Icon = "repeat",
     Value = false,
@@ -428,7 +427,7 @@ Tabs.Auto_Farm:Toggle({
 
 
 -- Auto Avoid Rake
-Tabs.Auto_Farm:Toggle({
+Tabs.Settings:Toggle({
     Title = "Auto Avoid Rake",
     Icon = "alert-octagon",
     Value = false,
@@ -476,7 +475,7 @@ Tabs.Auto_Farm:Toggle({
 
 
 -- Loop Tween to Safe Zone Every 2 Seconds
-Tabs.Auto_Farm:Toggle({
+Tabs.Settings:Toggle({
     Title = "Tween to Safe Zone (Every 2s)",
     Icon = "refresh-cw",
     Value = false,
@@ -507,7 +506,7 @@ Tabs.Auto_Farm:Toggle({
 })
 
 -- Anti-Tween & Anti-Teleport Detection Bypass
-Tabs.Auto_Farm:Toggle({
+Tabs.Settings:Toggle({
     Title = "Bypass Tween/Teleport Detection",
     Icon = "shield-off",
     Value = false,
@@ -545,36 +544,6 @@ Tabs.Auto_Farm:Toggle({
 })
 
 
--- Tween to Safe Zone Every 5 Seconds
-Tabs.Auto_Farm:Toggle({
-    Title = "Tween to Safe Zone (Every 5s)",
-    Icon = "clock",
-    Value = false,
-    Callback = function(state)
-        if tween5s then tween5s:Disconnect() tween5s = nil end
-        if state then
-            tween5s = RunService.Heartbeat:Connect(function()
-                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-                local safePart = getSafeZonePart()
-                if safePart then
-                    tweenTo(safePart)
-                end
-                wait(5)
-            end)
-            WindUI:Notify({
-                Title = "Safe Zone Tween",
-                Content = "Tweening every 5 seconds enabled.",
-                Duration = 4
-            })
-        else
-            WindUI:Notify({
-                Title = "Safe Zone Tween",
-                Content = "Tweening every 5 seconds disabled.",
-                Duration = 4
-            })
-        end
-    end
-})
 
 -- Auto Collect Items (Flare Gun, Scrap, Drops)
 Tabs.Auto_Farm:Toggle({
