@@ -16,6 +16,7 @@ local MainTab = Window:Tab({ Text = "Main" })
 local VisualTab = Window:Tab({ Text = "Visual" })
 local StatusTab = Window:Tab({ Text = "Status" })
 local PlayerTab = Window:Tab({ Text = "Player" })
+local SettingsTab = Window:Tab({ Text = "Settings" })
 
 -- Sections
 local Gameplay = MainTab:Section({ Text = "Gameplay" })
@@ -23,13 +24,14 @@ local Morphs = MainTab:Section({ Text = "Morphs" })
 local Teleport = MainTab:Section({ Text = "Teleport" })
 local ESP = VisualTab:Section({ Text = "ESP" })
 local Status = StatusTab:Section({ Text = "Live Info" })
+local Settings = SettingsTab:Section({ Text = "Network Tweaks" })
 
 -- Status Labels
 local FlareLabel = Status:Label({ Text = "Flare Gun: Unknown" })
 local RakeLabel = Status:Label({ Text = "Rake: Unknown" })
 local BloodHourLabel = Status:Label({ Text = "Blood Hour: Unknown" })
 
--- Status Updater (real-time)
+-- Status Updater
 RunService.RenderStepped:Connect(function()
     local flare = Workspace:FindFirstChild("FlareGun") or Workspace:FindFirstChildWhichIsA("Tool", true)
     FlareLabel:Set({ Text = flare and "Flare Gun: Spawned" or "Flare Gun: Not Found" })
@@ -41,7 +43,7 @@ RunService.RenderStepped:Connect(function()
     BloodHourLabel:Set({ Text = bh and bh.Value and "Blood Hour: ACTIVE" or "Blood Hour: Inactive" })
 end)
 
--- WalkSpeed Bypass toggle
+-- WalkSpeed Bypass
 local walkSpeedConnection
 Gameplay:Toggle({
     Text = "WalkSpeed Bypass (30)",
@@ -56,7 +58,7 @@ Gameplay:Toggle({
     end
 })
 
--- Infinite Stamina toggle with full regen logic
+-- Infinite Stamina
 Gameplay:Toggle({
     Text = "Infinite Stamina",
     Callback = function(state)
@@ -80,7 +82,7 @@ Gameplay:Toggle({
     end
 })
 
--- Full Bright toggle
+-- Full Bright
 Gameplay:Toggle({
     Text = "Full Bright",
     Callback = function(state)
@@ -109,7 +111,7 @@ Gameplay:Toggle({
     end
 })
 
--- No Fall Damage hook (metatable hook)
+-- No Fall Damage
 _G.NoFallDMG = false
 do
     local mt = getrawmetatable(game)
@@ -139,7 +141,7 @@ Gameplay:Toggle({
     end,
 })
 
--- God Mode (Infinite Health Regen)
+-- God Mode
 local godModeConnection
 Gameplay:Toggle({
     Text = "God Mode (Infinite Regen)",
@@ -159,7 +161,7 @@ Gameplay:Toggle({
     end
 })
 
--- Morphing function
+-- Morph Buttons
 local function MorphInto(name)
     local morph = ReplicatedStorage:FindFirstChild("Morphs") and ReplicatedStorage.Morphs:FindFirstChild(name)
     if morph then ReplicatedStorage:WaitForChild("CharChange"):FireServer(morph) end
@@ -171,7 +173,7 @@ Morphs:Button({ Text = "Shadow Rake", Callback = function() MorphInto("ShadowHou
 Morphs:Button({ Text = "Vision Rake", Callback = function() MorphInto("VisionRakeMorph") end })
 Morphs:Button({ Text = "Corrupted Rake", Callback = function() MorphInto("CorrupteredRakeMorph") end })
 
--- Teleport to Flare Gun (Manual only)
+-- Teleport to Flare Gun
 Teleport:Button({
     Text = "Teleport to Flare Gun",
     Callback = function()
@@ -186,7 +188,7 @@ Teleport:Button({
     end
 })
 
--- ESP Helpers
+-- ESP System
 local activeESP = {}
 
 local function applyHighlight(obj, color)
@@ -207,7 +209,6 @@ local function clearESP()
     activeESP = {}
 end
 
--- ESP toggles
 ESP:Toggle({
     Text = "ESP: Rake",
     Callback = function(state)
@@ -244,7 +245,7 @@ ESP:Toggle({
     end
 })
 
--- Pass Noclip Chair function
+-- Noclip Chair Toggle
 local noclipConnection
 Gameplay:Toggle({
     Text = "Pass Noclip Chair",
@@ -270,6 +271,27 @@ Gameplay:Toggle({
                     end
                 end
             end
+        end
+    end
+})
+
+-- Anti-Latency Smoothing
+local latencyConnection
+Settings:Toggle({
+    Text = "Anti-Latency (Smoothing)",
+    Callback = function(state)
+        if latencyConnection then latencyConnection:Disconnect() latencyConnection = nil end
+
+        if state then
+            latencyConnection = RunService.Heartbeat:Connect(function()
+                if LocalPlayer.Character then
+                    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        hrp.Velocity = Vector3.zero
+                        hrp.RotVelocity = Vector3.zero
+                    end
+                end
+            end)
         end
     end
 })
