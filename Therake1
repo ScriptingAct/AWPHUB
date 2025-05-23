@@ -112,7 +112,7 @@ local OriginalLighting = {
 Tabs.Settings:Toggle({
     Title = "Infinite Stamina",
     Icon = "zap",
-    Value = true,
+    Value = false,
     Callback = function(state)
         RunService:UnbindFromRenderStep("Stamina")
         if state then
@@ -214,43 +214,5 @@ Tabs.Settings:Toggle({
             VirtualUser:Button2Down(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
             VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
         end)
-    end
-})
-
--- Anti-Lag
-Tabs.Settings:Toggle({
-    Title = "Anti-Lag",
-    Icon = "cpu",
-    Value = false,
-    Callback = function(state)
-        for _, v in pairs(Workspace:GetDescendants()) do
-            if v:IsA("Texture") or v:IsA("Decal") then v:Destroy() end
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") then v.Enabled = not state end
-        end
-    end
-})
-
--- Anti-Ping Spike
-Tabs.Settings:Toggle({
-    Title = "Anti-Ping Spike",
-    Icon = "wifi",
-    Value = false,
-    Callback = function(state)
-        RunService:UnbindFromRenderStep("PingSpikeFix")
-        if state then
-            RunService:BindToRenderStep("PingSpikeFix", 1, function()
-                local _ = math.sin(tick())
-            end)
-        end
-    end
-})
-
--- Anti-Latency
-Tabs.Settings:Toggle({
-    Title = "Anti-Latency",
-    Icon = "activity",
-    Value = false,
-    Callback = function(state)
-        settings().Rendering.QualityLevel = state and Enum.QualityLevel.Level01 or Enum.QualityLevel.Automatic
     end
 })
