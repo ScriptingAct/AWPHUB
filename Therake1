@@ -1,8 +1,3 @@
--- Game Check
-if game.PlaceId ~= 2413927524then
-    warn("This Script only Use in the rake remastered")
-    return
-end
 
 -- Load WindUI
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -87,14 +82,8 @@ local Window = WindUI:CreateWindow({
     HasOutline = true,
     -- remove it below if you don't want to use the key system in your script.
     KeySystem = { -- <- keysystem enabled
-        Key = { "1234", "09041208782" },
-        Note = "Example Key System. \n\nThe Key is '1234' or '5678",
-        -- Thumbnail = {
-        --     Image = "rbxassetid://18220445082", -- rbxassetid only
-        --     Title = "Thumbnail"
-        -- },
-        URL = "https://github.com/Footagesus/WindUI", -- remove this if the key is not obtained from the link.
-        SaveKey = true, -- optional
+        Key = { "AWPADMINISTAROTEAO1", "GH13515134134", "1542", "23566734", "1357532", "12351323" },
+        SaveKey = false
     },
 })
 
