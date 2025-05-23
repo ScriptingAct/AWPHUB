@@ -35,6 +35,7 @@ Window:EditOpenButton({
 local Tabs = {
     ESP = Window:Tab({ Title = "ESP", Icon = "eye" }),
     Settings = Window:Tab({ Title = "Settings", Icon = "sliders-horizontal" }),
+    Unlockables = Window:Tab({ Title = "Unlockables", Icon = "lock-open" })
 }
 
 -- ESP Logic
@@ -216,3 +217,44 @@ Tabs.Settings:Toggle({
         end)
     end
 })
+
+-- Unlockables Tab
+Tabs.Unlockables:Toggle({
+    Title = "No Fall Damage",
+    Icon = "shield",
+    Value = false,
+    Callback = function(state)
+        _G.NoFallDMG = state
+
+        -- Hook metatable only once
+        if not _G.NoFallHooked then
+            _G.NoFallHooked = true
+            local mt = getrawmetatable(game)
+            local namecall = mt.__namecall
+            setreadonly(mt, false)
+
+            mt.__namecall = function(self, ...)
+                if _G.NoFallDMG == true then
+                    local args = { ... }
+                    local method = getnamecallmethod()
+
+                    if tostring(self) == "FD_Event" and method == "FireServer" then
+                        args[1] = 0
+                        args[2] = 0
+                        return self.FireServer(self, unpack(args))
+                    end
+                end
+                return namecall(self, ...)
+            end
+
+            setreadonly(mt, true)
+        end
+    end
+})
+
+-- Instant Supply Box Opened
+Tabs.Unlockables:Toggle({
+    Title = "Instant Supply Box Opened",
+    Icon = "package",
+    Value = false,
+    Callback = function(state)
