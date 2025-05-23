@@ -258,3 +258,18 @@ Tabs.Unlockables:Toggle({
     Icon = "package",
     Value = false,
     Callback = function(state)
+        _G.InstaOpenSupplyDrop = state
+
+        -- RunService Heartbeat function to make supply box open instantly
+        game:GetService("RunService").Heartbeat:Connect(function()
+            if _G.InstaOpenSupplyDrop == true then
+                pcall(function()
+                    for i, v in pairs(game:GetService("Workspace").Debris.SupplyCrates.Box.GUIPart.ProximityPrompt:GetAttributes()) do
+                        game:GetService("Workspace").Debris.SupplyCrates.Box.GUIPart.ProximityPrompt:SetAttribute(tostring(i), false)
+                    end
+                    game:GetService("Workspace").Debris.SupplyCrates.Box.UnlockValue.Value = 100
+                end)
+            end
+        end)
+    end
+})
