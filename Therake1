@@ -40,9 +40,9 @@ end
 local Confirmed = false
 
 WindUI:Popup({
-    Title = "Welcome! Popup Example",
+    Title = "License Started",
     Icon = "info",
-    Content = "This is an Example UI for the " .. gradient("WindUI", Color3.fromHex("#00FF87"), Color3.fromHex("#60EFFF")) .. " Lib",
+    Content = "Loading " .. gradient("AWP_HUB", Color3.fromHex("#00FF87"), Color3.fromHex("#60EFFF")) .. " Premium",
     Buttons = {
         {
             Title = "Cancel",
@@ -65,9 +65,9 @@ repeat wait() until Confirmed
 --
 
 local Window = WindUI:CreateWindow({
-    Title = "WindUI Library",
+    Title = "AWP_HUB",
     Icon = "door-open",
-    Author = "Example UI",
+    Author = "No detected",
     Folder = "CloudHub",
     Size = UDim2.fromOffset(580, 460),
     Transparent = true,
