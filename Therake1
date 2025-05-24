@@ -42,7 +42,7 @@ local Confirmed = false
 WindUI:Popup({
     Title = "Arena World Panel",
     Icon = "info",
-    Content = "Your License Is private " .. gradient("AWP_HUB", Color3.fromHex("#00FF87"), Color3.fromHex("#60EFFF")) .. " V1.1",
+    Content = "Loading Version 1.2 " .. gradient("AWP_HUB", Color3.fromHex("#00FF87"), Color3.fromHex("#60EFFF")) .. " THE RAKE REMASTERED",
     Buttons = {
         {
             Title = "Cancel",
