@@ -67,7 +67,7 @@ repeat wait() until Confirmed
 local Window = WindUI:CreateWindow({
     Title = "AWP_HUB",
     Icon = "door-open",
-    Author = "No detected",
+    Author = "Version 1.2.2 [No detected]",
     Folder = "CloudHub",
     Size = UDim2.fromOffset(580, 460),
     Transparent = true,
@@ -75,7 +75,7 @@ local Window = WindUI:CreateWindow({
     User = {
         Enabled = true, -- <- or false
         Callback = function() print("clicked") end, -- <- optional
-        Anonymous = true -- <- or true
+        Anonymous = false -- <- or true
     },
     SideBarWidth = 200,
     --Background = "rbxassetid://13511292247", -- rbxassetid only
