@@ -1,111 +1,49 @@
 -- Load WindUI
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
--- Services
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
-local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local VirtualUser = game:GetService("VirtualUser")
 
--- Set theme:
---WindUI:SetTheme("Light")
-
-function gradient(text, startColor, endColor)
-    local result = ""
-    local length = #text
-
-    for i = 1, length do
-        local t = (i - 1) / math.max(length - 1, 1)
-        local r = math.floor((startColor.R + (endColor.R - startColor.R) * t) * 255)
-        local g = math.floor((startColor.G + (endColor.G - startColor.G) * t) * 255)
-        local b = math.floor((startColor.B + (endColor.B - startColor.B) * t) * 255)
-
-        local char = text:sub(i, i)
-        result = result .. "<font color=\"rgb(" .. r ..", " .. g .. ", " .. b .. ")\">" .. char .. "</font>"
-    end
-
-    return result
-end
-
-local Confirmed = false
-
-WindUI:Popup({
-    Title = "Arena World Panel",
-    Icon = "info",
-    Content = "Loading Version 1.2 " .. gradient("AWP_HUB", Color3.fromHex("#00FF87"), Color3.fromHex("#60EFFF")) .. " THE RAKE REMASTERED",
-    Buttons = {
-        {
-            Title = "Cancel",
-            Callback = function() end,
-            Variant = "Secondary",
-        },
-        {
-            Title = "Continue",
-            Icon = "arrow-right",
-            Callback = function() Confirmed = true end,
-            Variant = "Primary",
-        }
-    }
-})
-
-repeat wait() until Confirmed
-
+-- Window Setup
 local Window = WindUI:CreateWindow({
-    Title = "AWP_HUB[Premium]",
+    Title = "AWP_HUB [Premium]",
     Icon = "door-open",
-    Author = "Private License",
-    Folder = "CloudHub",
     Size = UDim2.fromOffset(580, 460),
-    Transparent = true,
     Theme = "Dark",
-    User = {
-        Enabled = true,
-        Callback = function() print("clicked") end,
-        Anonymous = false
-    },
-    SideBarWidth = 200,
-    HasOutline = true,
-    KeySystem = {
-        Key = { "AWPADMINISTAROTEAO1", "GH13515134134", "1542", "23566734", "1357532", "12351323" },
-        SaveKey = false
-    },
 })
 
-Window:EditOpenButton({
-    Title = "Open AWP HUB",
-    Icon = "monitor",
-    CornerRadius = UDim.new(0, 16),
-    StrokeThickness = 2,
-    Color = ColorSequence.new(Color3.fromRGB(255, 0, 123), Color3.fromRGB(255, 150, 0)),
-    Draggable = true
-})
-
+-- Tabs
 local Tabs = {
     ESP = Window:Tab({ Title = "ESP", Icon = "eye" }),
     Settings = Window:Tab({ Title = "Settings", Icon = "sliders-horizontal" }),
     Unlockables = Window:Tab({ Title = "Unlockables", Icon = "lock-open" }),
+    Rake = Window:Tab({ Title = "Rake", Icon = "sword" }),
 }
 
--- ESP Logic
+-- ESP Toggles
 local activeESP = {}
 
-local function applyHighlight(obj, color)
-    if not obj or not obj:IsDescendantOf(Workspace) then return end
-    if not activeESP[obj] and obj:FindFirstChild("HumanoidRootPart") then
-        local h = Instance.new("Highlight", obj)
-        h.FillColor = color
-        h.OutlineColor = color
-        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        activeESP[obj] = h
-    end
+local function applyHighlight(model, color)
+    if activeESP[model] then return end
+    if not model:IsDescendantOf(Workspace) then return end
+    if not model:FindFirstChild("HumanoidRootPart") then return end
+
+    local h = Instance.new("Highlight")
+    h.FillColor = color
+    h.OutlineColor = color
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Parent = model
+    activeESP[model] = h
 end
 
 local function clearESP()
-    for obj, h in pairs(activeESP) do
-        if h then h:Destroy() end
+    for model, highlight in pairs(activeESP) do
+        if highlight then highlight:Destroy() end
     end
     activeESP = {}
 end
@@ -118,16 +56,17 @@ Tabs.ESP:Toggle({
         RunService:UnbindFromRenderStep("RakeESP")
         if state then
             RunService:BindToRenderStep("RakeESP", 1, function()
-                for _, v in pairs(Workspace:GetChildren()) do
-                    if v:IsA("Model") and v.Name:lower():find("rake") then
-                        applyHighlight(v, Color3.fromRGB(255, 0, 0))
+                clearESP()
+                for _, model in pairs(Workspace:GetChildren()) do
+                    if model:IsA("Model") and model.Name:lower():find("rake") then
+                        applyHighlight(model, Color3.fromRGB(255, 0, 0))
                     end
                 end
             end)
         else
             clearESP()
         end
-    end
+    end,
 })
 
 Tabs.ESP:Toggle({
@@ -138,8 +77,9 @@ Tabs.ESP:Toggle({
         RunService:UnbindFromRenderStep("PlayerESP")
         if state then
             RunService:BindToRenderStep("PlayerESP", 1, function()
+                clearESP()
                 for _, p in pairs(Players:GetPlayers()) do
-                    if p ~= LocalPlayer and p.Character then
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                         applyHighlight(p.Character, Color3.fromRGB(0, 170, 255))
                     end
                 end
@@ -147,26 +87,18 @@ Tabs.ESP:Toggle({
         else
             clearESP()
         end
-    end
+    end,
 })
 
-local Flags = {}
-local OriginalLighting = {
-    Ambient = Lighting.Ambient,
-    ColorShift_Bottom = Lighting.ColorShift_Bottom,
-    ColorShift_Top = Lighting.ColorShift_Top,
-    Brightness = Lighting.Brightness,
-    FogEnd = Lighting.FogEnd
-}
-
+-- Infinite Stamina
 Tabs.Settings:Toggle({
     Title = "Infinite Stamina",
     Icon = "zap",
     Value = false,
     Callback = function(state)
-        RunService:UnbindFromRenderStep("Stamina")
+        RunService:UnbindFromRenderStep("InfiniteStamina")
         if state then
-            RunService:BindToRenderStep("Stamina", 100, function()
+            RunService:BindToRenderStep("InfiniteStamina", 100, function()
                 local energy = LocalPlayer:FindFirstChild("Energy")
                 if energy then energy.Value = 100 end
                 for _, v in pairs(getgc(true)) do
@@ -180,8 +112,23 @@ Tabs.Settings:Toggle({
                 end
             end)
         end
-    end
+    end,
 })
+
+-- Lighting Toggles: No Blood Hour, FullBright, Fake Night Vision
+local originalLighting = {
+    Ambient = Lighting.Ambient,
+    ColorShift_Bottom = Lighting.ColorShift_Bottom,
+    ColorShift_Top = Lighting.ColorShift_Top,
+    Brightness = Lighting.Brightness,
+    FogEnd = Lighting.FogEnd,
+}
+
+local function resetLighting()
+    for prop, val in pairs(originalLighting) do
+        Lighting[prop] = val
+    end
+end
 
 Tabs.Settings:Toggle({
     Title = "Remove Blood Hour Color",
@@ -198,9 +145,9 @@ Tabs.Settings:Toggle({
                 Lighting.FogColor = Color3.new(1, 1, 1)
             end)
         else
-            for prop, val in pairs(OriginalLighting) do Lighting[prop] = val end
+            resetLighting()
         end
-    end
+    end,
 })
 
 Tabs.Settings:Toggle({
@@ -208,23 +155,16 @@ Tabs.Settings:Toggle({
     Icon = "lightbulb",
     Value = false,
     Callback = function(state)
-        local function doFullBright()
-            if state then
-                Lighting.Ambient = Color3.new(1, 1, 1)
-                Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
-                Lighting.ColorShift_Top = Color3.new(1, 1, 1)
-                Lighting.Brightness = 3
-                Lighting.FogEnd = 100000
-            else
-                for prop, val in pairs(OriginalLighting) do Lighting[prop] = val end
-            end
-        end
-        doFullBright()
-        if Flags.FullBright then Flags.FullBright:Disconnect() Flags.FullBright = nil end
         if state then
-            Flags.FullBright = Lighting.LightingChanged:Connect(doFullBright)
+            Lighting.Ambient = Color3.new(1, 1, 1)
+            Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+            Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+            Lighting.Brightness = 3
+            Lighting.FogEnd = 100000
+        else
+            resetLighting()
         end
-    end
+    end,
 })
 
 Tabs.Settings:Toggle({
@@ -232,145 +172,125 @@ Tabs.Settings:Toggle({
     Icon = "eye",
     Value = false,
     Callback = function(state)
-        local function doNightVision()
-            if state then
-                Lighting.Ambient = Color3.fromRGB(80, 255, 100)
-                Lighting.ColorShift_Bottom = Color3.fromRGB(80, 255, 100)
-                Lighting.ColorShift_Top = Color3.fromRGB(80, 255, 100)
-                Lighting.Brightness = 2.5
-                Lighting.FogEnd = 100000
-            else
-                for prop, val in pairs(OriginalLighting) do Lighting[prop] = val end
-            end
-        end
-        doNightVision()
-        if Flags.NightVision then Flags.NightVision:Disconnect() Flags.NightVision = nil end
         if state then
-            Flags.NightVision = Lighting.LightingChanged:Connect(doNightVision)
+            Lighting.Ambient = Color3.fromRGB(80, 255, 100)
+            Lighting.ColorShift_Bottom = Color3.fromRGB(80, 255, 100)
+            Lighting.ColorShift_Top = Color3.fromRGB(80, 255, 100)
+            Lighting.Brightness = 2.5
+            Lighting.FogEnd = 100000
+        else
+            resetLighting()
         end
-    end
+    end,
 })
 
+-- Anti-AFK
 Tabs.Settings:Toggle({
     Title = "Anti-AFK",
     Icon = "coffee",
     Value = true,
     Callback = function()
         Players.LocalPlayer.Idled:Connect(function()
-            VirtualUser:Button2Down(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
-            VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+            VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+            VirtualUser:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
         end)
-    end
+    end,
 })
 
+-- Infinite Night Vision [Gamepass Only]
 Tabs.Settings:Toggle({
     Title = "Infinite Night Vision [Gamepass Only]",
     Icon = "eye",
     Value = false,
     Callback = function(state)
-        _G.InfNightVision = state
-        if _G.InfNightVision == true then
-            for i, v in pairs(getgc(true)) do
-                if type(v) == "table" then
-                    if rawget(v, "NVG_TAKE") then
-                        v.NVG_TAKE = 0
-                        v.NVG_REGEN = 100
-                    end
+        if state then
+            for _, v in pairs(getgc(true)) do
+                if type(v) == "table" and rawget(v, "NVG_TAKE") then
+                    v.NVG_TAKE = 0
+                    v.NVG_REGEN = 100
                 end
             end
         end
     end,
 })
 
+-- No Fall Damage (auto heal approach)
 Tabs.Unlockables:Toggle({
     Title = "No Fall Damage",
     Icon = "shield",
     Value = false,
     Callback = function(state)
-        _G.NoFallDMG = state
-        if not _G.NoFallHooked then
-            _G.NoFallHooked = true
-            local mt = getrawmetatable(game)
-            local old = mt.__namecall
-            setreadonly(mt, false)
-            mt.__namecall = newcclosure(function(self, ...)
-                local args = {...}
-                if _G.NoFallDMG and tostring(self) == "Humanoid" and getnamecallmethod() == "TakeDamage" then
-                    return
+        if state then
+            -- Connect to Health change to auto heal any damage immediately
+            if not _G.NoFallDamageConnection then
+                local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    _G.NoFallDamageConnection = humanoid.HealthChanged:Connect(function(health)
+                        if health < humanoid.MaxHealth then
+                            humanoid.Health = humanoid.MaxHealth
+                        end
+                    end)
                 end
-                return old(self, ...)
-            end)
-            setreadonly(mt, true)
+            end
+        else
+            if _G.NoFallDamageConnection then
+                _G.NoFallDamageConnection:Disconnect()
+                _G.NoFallDamageConnection = nil
+            end
         end
-    end
+    end,
 })
 
+-- Unlock Supply Drop
 Tabs.Unlockables:Toggle({
     Title = "Unlock Supply Drop",
     Icon = "gift",
     Value = false,
     Callback = function(state)
-        _G.UnlockSupplyDrop = state
         if state then
-            -- Example implementation, replace with actual unlock logic
-            -- For example, firing a remote event or changing some game value
             pcall(function()
-                local remote = game:GetService("ReplicatedStorage"):FindFirstChild("UnlockSupplyDropEvent")
+                local remote = ReplicatedStorage:FindFirstChild("UnlockSupplyDropEvent")
                 if remote and remote:IsA("RemoteEvent") then
                     remote:FireServer()
                 else
-                    print("UnlockSupplyDropEvent not found or not a RemoteEvent")
+                    print("UnlockSupplyDropEvent not found")
                 end
             end)
         end
-    end
+    end,
 })
 
--- Toggleable Rake Kill Aura Tab
-local RakeTab = Window:Tab({ Title = "Rake", Icon = "sword" })
-
-RakeTab:Toggle({
+-- Rake Kill Aura (remote event attack, randomized timing)
+Tabs.Rake:Toggle({
     Title = "Rake Kill Aura",
     Icon = "sword",
     Value = false,
     Callback = function(state)
         _G.RakeKillAura = state
-
-        if state then
-            coroutine.wrap(function()
-                repeat
-                    wait()
-                    pcall(function()
-                        local rake = Workspace:FindFirstChild("Rake")
-                        if rake and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                            local dist = (rake.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                            if dist < 200 then
-                                local stunStick = LocalPlayer.Character:FindFirstChild("StunStick")
-                                if stunStick and stunStick:FindFirstChild("Event") then
-                                    stunStick.Event:FireServer("S")
-                                    wait()
-                                    stunStick.Event:FireServer("H", rake.HumanoidRootPart)
+        spawn(function()
+            while _G.RakeKillAura do
+                for _, rake in pairs(Workspace:GetChildren()) do
+                    if rake:IsA("Model") and rake.Name:lower():find("rake") then
+                        local hrp = rake:FindFirstChild("HumanoidRootPart")
+                        local charHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp and charHRP then
+                            local dist = (hrp.Position - charHRP.Position).Magnitude
+                            if dist < 15 then
+                                local attackEvent = ReplicatedStorage:FindFirstChild("AttackEvent") or ReplicatedStorage:FindFirstChild("RakeAttackEvent")
+                                if attackEvent and attackEvent:IsA("RemoteEvent") then
+                                    pcall(function()
+                                        attackEvent:FireServer(rake)
+                                    end)
                                 end
                             end
                         end
-                    end)
-                    wait(0.1)
-                until _G.RakeKillAura == false
-            end)()
-        end
+                    end
+                end
+                wait(math.random(0.4, 0.8))
+            end
+        end)
     end,
 })
 
-RunService.Heartbeat:Connect(function()
-    if AllowRunService == true and _G.RakeKillAura == true then
-        pcall(function()
-            local rake = Workspace:FindFirstChild("Rake")
-            if rake and LocalPlayer.Character then
-                local stunStick = LocalPlayer.Character:FindFirstChild("StunStick")
-                if stunStick and stunStick:FindFirstChild("HitPart") and rake:FindFirstChild("HumanoidRootPart") then
-                    stunStick.HitPart.Position = rake.HumanoidRootPart.Position
-                end
-            end
-        end)
-    end
-end)
+-- Final: Notify loaded
+print("[AWP_HUB] Script loaded successfully.")
