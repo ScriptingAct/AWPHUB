@@ -1,234 +1,291 @@
--- Library Setup
-local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/Shaman.lua'))()
-local Flags = Library.Flags
+--// Load WindUI
+Print("Update")
 
--- Game Check
-if game.PlaceId ~= 189707 then
-    warn("This script only works in Natural Disaster Survival.")
-    return
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+
+-- Test
+
+
+
+-- Set theme:
+--WindUI:SetTheme("Light")
+
+--- EXAMPLE !!!
+
+function gradient(text, startColor, endColor)
+    local result = ""
+    local length = #text
+
+    for i = 1, length do
+        local t = (i - 1) / math.max(length - 1, 1)
+        local r = math.floor((startColor.R + (endColor.R - startColor.R) * t) * 255)
+        local g = math.floor((startColor.G + (endColor.G - startColor.G) * t) * 255)
+        local b = math.floor((startColor.B + (endColor.B - startColor.B) * t) * 255)
+
+        local char = text:sub(i, i)
+        result = result .. "<font color=\"rgb(" .. r ..", " .. g .. ", " .. b .. ")\">" .. char .. "</font>"
+    end
+
+    return result
 end
 
--- UI Windows and Tabs
-local Window = Library:Window({ Text = "Baseplate" })
+local Confirmed = false
 
-local Tab = Window:Tab({ Text = "Player" })
-local Tab2 = Window:Tab({ Text = "Teleport" })
-local Tab3 = Window:Tab({ Text = "Universal Hub" })
-local Tab4 = Window:Tab({ Text = "Settings" })
-local Tab5 = Window:Tab({ Text = "Status" })
-
--- Sections
-local Section = Tab:Section({ Text = "Human Function" })
-local Section2 = Tab2:Section({ Text = "TP Selected" })
-local Section3 = Tab3:Section({ Text = "Universal Scripts" })
-local Section4 = Tab4:Section({ Text = "Settings Data" })
-local Section5 = Tab5:Section({ Text = "Game Status" })
-
--- Fall Damage Toggle
-local noFallEnabled = false
-local noFallConnection
-
-local function applyNoFall()
-    local player = game.Players.LocalPlayer
-    local z = Vector3.zero
-    local rs = game:GetService("RunService")
-
-    local function disableVelocity(char)
-        local root = char:WaitForChild("HumanoidRootPart", 5)
-        if root then
-            noFallConnection = rs.Heartbeat:Connect(function()
-                if not root.Parent or not noFallEnabled then
-                    noFallConnection:Disconnect()
-                    return
-                end
-                local vel = root.AssemblyLinearVelocity
-                root.AssemblyLinearVelocity = z
-                rs.RenderStepped:Wait()
-                root.AssemblyLinearVelocity = vel
-            end)
-        end
-    end
-
-    disableVelocity(player.Character or player.CharacterAdded:Wait())
-    player.CharacterAdded:Connect(function(char)
-        if noFallEnabled then
-            disableVelocity(char)
-        end
-    end)
-end
-
-local function disableNoFall()
-    if noFallConnection then
-        noFallConnection:Disconnect()
-        noFallConnection = nil
-    end
-end
-
--- UI: No Fall Damage Toggle
-Section:Toggle({
-    Text = "No Fall Damage",
-    Callback = function(state)
-        noFallEnabled = state
-        if state then
-            applyNoFall()
-        else
-            disableNoFall()
-        end
-    end
+WindUI:Popup({
+    Title = "AWP_HUB",
+    Icon = "info",
+    Content = "Loading " .. gradient("AWP", Color3.fromHex("#00FF87"), Color3.fromHex("#60EFFF")) .. " HUB",
+    Buttons = {
+        {
+            Title = "Cancel",
+            --Icon = "",
+            Callback = function() end,
+            Variant = "Secondary", -- Primary, Secondary, Tertiary
+        },
+        {
+            Title = "Continue",
+            Icon = "arrow-right",
+            Callback = function() Confirmed = true end,
+            Variant = "Primary", -- Primary, Secondary, Tertiary
+        }
+    }
 })
 
--- UI: Teleport Buttons
-Section2:Button({
-    Text = "Teleport to Lobby",
-    Tooltip = "Teleports you to the lobby.",
-    Callback = function()
-        local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            root.CFrame = CFrame.new(-285, 181, 352)
-        end
-    end
+
+repeat wait() until Confirmed
+
+--
+
+local Window = WindUI:CreateWindow({
+    Title = "AWP_HUB[Premium]",
+    Icon = "door-open",
+    Author = "Private License",
+    Folder = "CloudHub",
+    Size = UDim2.fromOffset(580, 460),
+    Transparent = true,
+    Theme = "Dark",
+    User = {
+        Enabled = true, -- <- or false
+        Callback = function() print("clicked") end, -- <- optional
+        Anonymous = false -- <- or true
+    },
+    SideBarWidth = 200,
+    --Background = "rbxassetid://13511292247", -- rbxassetid only
+    HasOutline = true,
+    -- remove it below if you don't want to use the key system in your script.
+    KeySystem = { -- <- keysystem enabled
+        Key = { "AWPADMINISTAROTEAO1", "GH13515134134", "1542", "23566734", "1357532", "12351323" },
+        SaveKey = false, -- optional
+    },
 })
 
-Section2:Button({
-    Text = "Teleport to Grounds",
-    Tooltip = "Teleports you to the center of the current map.",
-    Callback = function()
-        local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            root.CFrame = CFrame.new(-105.5, 44.2, -38.5, -1, 0, 0, 0, 1, 0, 0, 0, -1)
-        end
-    end
-})
 
--- Universal Hub Buttons
-Section3:Button({
-    Text = "Load Infinite Yield",
-    Tooltip = "Loads the Infinite Yield universal admin script.",
+--Window:SetBackgroundImage("rbxassetid://13511292247")
+
+--// Tabs
+local UniversalHubTab = Window:Tab({ Title = "Universal Hub", Icon = "box" })
+local TeleportTab = Window:Tab({ Title = "Teleport", Icon = "map" })
+local SettingsTab = Window:Tab({ Title = "Settings", Icon = "settings" })
+local AntiTab = Window:Tab({ Title = "Anti Detected", Icon = "shield-off" })
+
+--// Universal Scripts
+UniversalHubTab:Button({
+    Title = "Launch Infinite Yield",
+    Desc = "Admin commands script.",
     Callback = function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
     end
 })
 
-Section3:Button({
-    Text = "Load Dex Explorer",
-    Tooltip = "Loads the latest Dex Explorer tool (Moon Version).",
+UniversalHubTab:Button({
+    Title = "Launch Dex Explorer",
+    Desc = "Explore game objects.",
     Callback = function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/peyton2465/Dex/master/out.lua"))()
     end
 })
 
--- Settings Buttons
-Section4:Toggle({
-    Text = "Anti-AFK",
-    Callback = function(state)
-        if state then
-            local vu = game:GetService("VirtualUser")
-            game:GetService("Players").LocalPlayer.Idled:Connect(function()
-                vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-                wait(1)
-                vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-            end)
+--// Teleports
+TeleportTab:Button({
+    Title = "Teleport to Lobby",
+    Callback = function()
+        local p = game.Players.LocalPlayer
+        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            p.Character.HumanoidRootPart.CFrame = CFrame.new(
+                -280.707092, 174.900024, 341.707092,
+                 0.707134247, 0, 0.707079291,
+                 0, 1, 0,
+                -0.707079291, 0, 0.707134247
+            )
         end
     end
 })
 
-Section4:Toggle({
-    Text = "ESP Players",
+TeleportTab:Button({
+    Title = "Teleport to Grounds",
+    Callback = function()
+        local p = game.Players.LocalPlayer
+        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            p.Character.HumanoidRootPart.CFrame = CFrame.new(
+                -105.5, 44.2000008, -38.5,
+                -1, 0, 0,
+                 0, 1, 0,
+                 0, 0, -1
+            )
+        end
+    end
+})
+
+--// Settings: No Fall Damage
+local RunService = game:GetService("RunService")
+local Heartbeat = RunService.Heartbeat
+local RenderStepped = RunService.RenderStepped
+local LocalPlayer = game.Players.LocalPlayer
+local zeroVec = Vector3.zero
+local fallConns = {}
+
+local function noFallDamage(char)
+    local root = char:WaitForChild("HumanoidRootPart")
+    if root then
+        local con = Heartbeat:Connect(function()
+            if not root.Parent then con:Disconnect() end
+            local v = root.AssemblyLinearVelocity
+            root.AssemblyLinearVelocity = zeroVec
+            RenderStepped:Wait()
+            root.AssemblyLinearVelocity = v
+        end)
+        table.insert(fallConns, con)
+    end
+end
+
+local function toggleFall(state)
+    for _, con in ipairs(fallConns) do
+        if typeof(con) == "RBXScriptConnection" then
+            con:Disconnect()
+        end
+    end
+    table.clear(fallConns)
+    if state then
+        noFallDamage(LocalPlayer.Character)
+        LocalPlayer.CharacterAdded:Connect(noFallDamage)
+    end
+end
+
+SettingsTab:Toggle({
+    Title = "No Fall Damage",
+    Value = false,
     Callback = function(state)
-        local Players = game:GetService("Players")
-        local RunService = game:GetService("RunService")
+        toggleFall(state)
+    end
+})
+
+--// Anti Detected Tab (with toggles)
+
+-- Anti-AFK Toggle
+local antiAfkEnabled = false
+local antiAfkConnection
+AntiTab:Toggle({
+    Title = "Enable Anti-AFK",
+    Value = true,
+    Callback = function(state)
+        antiAfkEnabled = state
         if state then
-            RunService:BindToRenderStep("PlayerESP", Enum.RenderPriority.Camera.Value + 1, function()
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                        if not player.Character:FindFirstChild("ESP") then
-                            local billboard = Instance.new("BillboardGui")
-                            billboard.Name = "ESP"
-                            billboard.Size = UDim2.new(0, 100, 0, 40)
-                            billboard.StudsOffset = Vector3.new(0, 3, 0)
-                            billboard.Adornee = player.Character.HumanoidRootPart
-                            billboard.AlwaysOnTop = true
-                            local label = Instance.new("TextLabel")
-                            label.Size = UDim2.new(1, 0, 1, 0)
-                            label.BackgroundTransparency = 1
-                            label.TextColor3 = Color3.new(1, 0, 0)
-                            label.Text = player.Name
-                            label.Parent = billboard
-                            billboard.Parent = player.Character
-                        end
+            local vu = game:GetService("VirtualUser")
+            antiAfkConnection = game:GetService("Players").LocalPlayer.Idled:Connect(function()
+                vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                task.wait(1)
+                vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            end)
+        else
+            if antiAfkConnection then
+                antiAfkConnection:Disconnect()
+                antiAfkConnection = nil
+            end
+        end
+    end
+})
+
+-- Anti-Cheat Bypass Toggle
+local antiKickEnabled = false
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+local oldNamecall = mt.__namecall
+
+local function antiKickHook(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
+    if antiKickEnabled and method == "Kick" and self == game.Players.LocalPlayer then
+        return warn("Kick attempt blocked.")
+    end
+    return oldNamecall(self, unpack(args))
+end
+
+local antiKickHooked = false
+AntiTab:Toggle({
+    Title = "Enable Anti-Cheat Bypass",
+    Value = true,
+    Callback = function(state)
+        antiKickEnabled = state
+        if state and not antiKickHooked then
+            mt.__namecall = newcclosure(antiKickHook)
+            antiKickHooked = true
+        elseif not state and antiKickHooked then
+            mt.__namecall = oldNamecall
+            antiKickHooked = false
+        end
+    end
+})
+
+-- Anti-Logs Toggle
+local antiLogsEnabled = false
+local antiLogsConnection
+AntiTab:Toggle({
+    Title = "Enable Anti-Logs",
+    Value = true,
+    Callback = function(state)
+        antiLogsEnabled = state
+        if state then
+            antiLogsConnection = game:GetService("RunService").Stepped:Connect(function()
+                for _, v in pairs(getreg()) do
+                    if typeof(v) == "table" and rawget(v, "output") then
+                        v.output = {}
                     end
                 end
             end)
         else
-            RunService:UnbindFromRenderStep("PlayerESP")
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player.Character and player.Character:FindFirstChild("ESP") then
-                    player.Character:FindFirstChild("ESP"):Destroy()
-                end
+            if antiLogsConnection then
+                antiLogsConnection:Disconnect()
+                antiLogsConnection = nil
             end
         end
     end
 })
 
-Section4:Toggle({
-    Text = "FPS Unlocker",
+-- Anti-Fling Toggle
+local antiFlingEnabled = false
+local antiFlingConnection
+AntiTab:Toggle({
+    Title = "Enable Anti-Fling",
+    Value = false,
     Callback = function(state)
-        if state and setfpscap then
-            setfpscap(1000)
-        elseif not state and setfpscap then
-            setfpscap(60)
-        end
-    end
-})
-
-Section4:Toggle({
-    Text = "Anti-Lag",
-    Callback = function(state)
+        antiFlingEnabled = state
         if state then
-            for _, obj in pairs(workspace:GetDescendants()) do
-                if obj:IsA("Texture") or obj:IsA("Decal") then
-                    obj.Transparency = 1
-                elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
-                    obj:Destroy()
+            antiFlingConnection = game:GetService("RunService").Stepped:Connect(function()
+                local char = game.Players.LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local hrp = char.HumanoidRootPart
+                    if hrp.Velocity.Magnitude > 150 then
+                        hrp.Velocity = Vector3.zero
+                        hrp.RotVelocity = Vector3.zero
+                    end
                 end
-            end
-        end
-    end
-})
-
-Section4:Toggle({
-    Text = "Anti-Latency",
-    Callback = function(state)
-        if state then
-            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-        end
-    end
-})
-
-Section4:Toggle({
-    Text = "Anti-Ping",
-    Callback = function(state)
-        if state then
-            game:GetService("NetworkSettings").IncomingReplicationLag = 0
-        end
-    end
-})
-
--- Game Status Paragraph
-local statusText = Section5:Paragraph({
-    Text = "Disaster: Unknown",
-    Tooltip = "Current disaster in progress."
-})
-
--- Real-time disaster status updater
-spawn(function()
-    while true do
-        local disasterLabel = workspace:FindFirstChild("_Disaster")
-        if disasterLabel and disasterLabel:IsA("StringValue") then
-            statusText:Set({ Text = "Disaster: " .. disasterLabel.Value })
+            end)
         else
-            statusText:Set({ Text = "Disaster: Unknown" })
+            if antiFlingConnection then
+                antiFlingConnection:Disconnect()
+                antiFlingConnection = nil
+            end
         end
-        wait(1)
     end
-end)
+})
