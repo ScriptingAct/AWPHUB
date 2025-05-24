@@ -1,4 +1,3 @@
-
 -- Load WindUI
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
@@ -11,14 +10,8 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local VirtualUser = game:GetService("VirtualUser")
 
--- Test
-
-
-
 -- Set theme:
 --WindUI:SetTheme("Light")
-
---- EXAMPLE !!!
 
 function gradient(text, startColor, endColor)
     local result = ""
@@ -46,23 +39,19 @@ WindUI:Popup({
     Buttons = {
         {
             Title = "Cancel",
-            --Icon = "",
             Callback = function() end,
-            Variant = "Secondary", -- Primary, Secondary, Tertiary
+            Variant = "Secondary",
         },
         {
             Title = "Continue",
             Icon = "arrow-right",
             Callback = function() Confirmed = true end,
-            Variant = "Primary", -- Primary, Secondary, Tertiary
+            Variant = "Primary",
         }
     }
 })
 
-
 repeat wait() until Confirmed
-
---
 
 local Window = WindUI:CreateWindow({
     Title = "AWP_HUB[Premium]",
@@ -73,15 +62,13 @@ local Window = WindUI:CreateWindow({
     Transparent = true,
     Theme = "Dark",
     User = {
-        Enabled = true, -- <- or false
-        Callback = function() print("clicked") end, -- <- optional
-        Anonymous = false -- <- or true
+        Enabled = true,
+        Callback = function() print("clicked") end,
+        Anonymous = false
     },
     SideBarWidth = 200,
-    --Background = "rbxassetid://13511292247", -- rbxassetid only
     HasOutline = true,
-    -- remove it below if you don't want to use the key system in your script.
-    KeySystem = { -- <- keysystem enabled
+    KeySystem = {
         Key = { "AWPADMINISTAROTEAO1", "GH13515134134", "1542", "23566734", "1357532", "12351323" },
         SaveKey = false
     },
@@ -96,11 +83,10 @@ Window:EditOpenButton({
     Draggable = true
 })
 
--- Tabs
 local Tabs = {
     ESP = Window:Tab({ Title = "ESP", Icon = "eye" }),
     Settings = Window:Tab({ Title = "Settings", Icon = "sliders-horizontal" }),
-    Unlockables = Window:Tab({ Title = "Unlockables", Icon = "lock-open" })
+    Unlockables = Window:Tab({ Title = "Unlockables", Icon = "lock-open" }),
 }
 
 -- ESP Logic
@@ -164,7 +150,6 @@ Tabs.ESP:Toggle({
     end
 })
 
--- Settings Toggles
 local Flags = {}
 local OriginalLighting = {
     Ambient = Lighting.Ambient,
@@ -174,7 +159,6 @@ local OriginalLighting = {
     FogEnd = Lighting.FogEnd
 }
 
--- Infinite Stamina
 Tabs.Settings:Toggle({
     Title = "Infinite Stamina",
     Icon = "zap",
@@ -199,7 +183,6 @@ Tabs.Settings:Toggle({
     end
 })
 
--- Remove Blood Hour Color
 Tabs.Settings:Toggle({
     Title = "Remove Blood Hour Color",
     Icon = "sun",
@@ -220,7 +203,6 @@ Tabs.Settings:Toggle({
     end
 })
 
--- FullBright + No Fog
 Tabs.Settings:Toggle({
     Title = "FullBright + No Fog",
     Icon = "lightbulb",
@@ -245,7 +227,6 @@ Tabs.Settings:Toggle({
     end
 })
 
--- Fake Night Vision
 Tabs.Settings:Toggle({
     Title = "Fake Night Vision",
     Icon = "eye",
@@ -270,7 +251,6 @@ Tabs.Settings:Toggle({
     end
 })
 
--- Anti-AFK
 Tabs.Settings:Toggle({
     Title = "Anti-AFK",
     Icon = "coffee",
@@ -283,58 +263,114 @@ Tabs.Settings:Toggle({
     end
 })
 
--- Unlockables Tab
+Tabs.Settings:Toggle({
+    Title = "Infinite Night Vision [Gamepass Only]",
+    Icon = "eye",
+    Value = false,
+    Callback = function(state)
+        _G.InfNightVision = state
+        if _G.InfNightVision == true then
+            for i, v in pairs(getgc(true)) do
+                if type(v) == "table" then
+                    if rawget(v, "NVG_TAKE") then
+                        v.NVG_TAKE = 0
+                        v.NVG_REGEN = 100
+                    end
+                end
+            end
+        end
+    end,
+})
+
 Tabs.Unlockables:Toggle({
     Title = "No Fall Damage",
     Icon = "shield",
     Value = false,
     Callback = function(state)
         _G.NoFallDMG = state
-
-        -- Hook metatable only once
         if not _G.NoFallHooked then
             _G.NoFallHooked = true
             local mt = getrawmetatable(game)
-            local namecall = mt.__namecall
+            local old = mt.__namecall
             setreadonly(mt, false)
-
-            mt.__namecall = function(self, ...)
-                if _G.NoFallDMG == true then
-                    local args = { ... }
-                    local method = getnamecallmethod()
-
-                    if tostring(self) == "FD_Event" and method == "FireServer" then
-                        args[1] = 0
-                        args[2] = 0
-                        return self.FireServer(self, unpack(args))
-                    end
+            mt.__namecall = newcclosure(function(self, ...)
+                local args = {...}
+                if _G.NoFallDMG and tostring(self) == "Humanoid" and getnamecallmethod() == "TakeDamage" then
+                    return
                 end
-                return namecall(self, ...)
-            end
-
+                return old(self, ...)
+            end)
             setreadonly(mt, true)
         end
     end
 })
 
--- Instant Supply Box Opened
 Tabs.Unlockables:Toggle({
-    Title = "Instant Supply Box Opened",
-    Icon = "package",
+    Title = "Unlock Supply Drop",
+    Icon = "gift",
     Value = false,
     Callback = function(state)
-        _G.InstaOpenSupplyDrop = state
+        _G.UnlockSupplyDrop = state
+        if state then
+            -- Example implementation, replace with actual unlock logic
+            -- For example, firing a remote event or changing some game value
+            pcall(function()
+                local remote = game:GetService("ReplicatedStorage"):FindFirstChild("UnlockSupplyDropEvent")
+                if remote and remote:IsA("RemoteEvent") then
+                    remote:FireServer()
+                else
+                    print("UnlockSupplyDropEvent not found or not a RemoteEvent")
+                end
+            end)
+        end
+    end
+})
 
-        -- RunService Heartbeat function to make supply box open instantly
-        game:GetService("RunService").Heartbeat:Connect(function()
-            if _G.InstaOpenSupplyDrop == true then
-                pcall(function()
-                    for i, v in pairs(game:GetService("Workspace").Debris.SupplyCrates.Box.GUIPart.ProximityPrompt:GetAttributes()) do
-                        game:GetService("Workspace").Debris.SupplyCrates.Box.GUIPart.ProximityPrompt:SetAttribute(tostring(i), false)
-                    end
-                    game:GetService("Workspace").Debris.SupplyCrates.Box.UnlockValue.Value = 100
-                end)
+-- Toggleable Rake Kill Aura Tab
+local RakeTab = Window:Tab({ Title = "Rake", Icon = "sword" })
+
+RakeTab:Toggle({
+    Title = "Rake Kill Aura",
+    Icon = "sword",
+    Value = false,
+    Callback = function(state)
+        _G.RakeKillAura = state
+
+        if state then
+            coroutine.wrap(function()
+                repeat
+                    wait()
+                    pcall(function()
+                        local rake = Workspace:FindFirstChild("Rake")
+                        if rake and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            local dist = (rake.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                            if dist < 200 then
+                                local stunStick = LocalPlayer.Character:FindFirstChild("StunStick")
+                                if stunStick and stunStick:FindFirstChild("Event") then
+                                    stunStick.Event:FireServer("S")
+                                    wait()
+                                    stunStick.Event:FireServer("H", rake.HumanoidRootPart)
+                                end
+                            end
+                        end
+                    end)
+                    wait(0.1)
+                until _G.RakeKillAura == false
+            end)()
+        end
+    end,
+})
+
+RunService.Heartbeat:Connect(function()
+    if AllowRunService == true and _G.RakeKillAura == true then
+        pcall(function()
+            local rake = Workspace:FindFirstChild("Rake")
+            if rake and LocalPlayer.Character then
+                local stunStick = LocalPlayer.Character:FindFirstChild("StunStick")
+                if stunStick and stunStick:FindFirstChild("HitPart") and rake:FindFirstChild("HumanoidRootPart") then
+                    stunStick.HitPart.Position = rake.HumanoidRootPart.Position
+                end
             end
         end)
     end
-})
+end)
