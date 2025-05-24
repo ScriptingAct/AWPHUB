@@ -82,7 +82,7 @@ local Window = WindUI:CreateWindow({
     HasOutline = true,
     -- remove it below if you don't want to use the key system in your script.
     KeySystem = { -- <- keysystem enabled
-        Key = { "AWPADMINISTAROTEAO1", "GH13515134134" },
+        Key = { "AWPADMINISTAROTEAO1", "AWPADMINISTAROTEAO1" },
         SaveKey = false, -- optional
     },
 })
