@@ -35,7 +35,7 @@ local Confirmed = false
 WindUI:Popup({
     Title = "AWP_HUB",
     Icon = "info",
-    Content = "Loading Version 1.2 " .. gradient("AWP", Color3.fromHex("#00FF87"), Color3.fromHex("#60EFFF")) .. " HUB",
+    Content = "Loading Version 1.2 " .. gradient("AWP_HUB", Color3.fromHex("#00FF87"), Color3.fromHex("#60EFFF")) .. " Natural_Disaster_Survival",
     Buttons = {
         {
             Title = "Cancel",
